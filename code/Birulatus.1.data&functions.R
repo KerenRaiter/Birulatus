@@ -49,7 +49,7 @@ lsos <- function(..., n=10) {
 lsos()
 
 # Birulatus heavies will be on E drive (at least for now), with E drive being backed up to HUJI server regularly
-B.heavies.spatial.path = 'E:/R/Birulatus_heavies/image/'
+B.heavies.spatial.path = 'E:/R/Birulatus_heavies/spatial/'
 B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
 B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 

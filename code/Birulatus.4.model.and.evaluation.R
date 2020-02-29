@@ -14,8 +14,7 @@ if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
 ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
        "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
-       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx")) # removed sf, may be causing problems
-# installed.packages()
+       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx"))
 installAll() # installing everything the sdm relies on.
 
 emailme = function() {
@@ -26,7 +25,8 @@ send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
                     ssl = T), authenticate=T) #, attach.files="C:\\Users\\Deepanshu\\Nature.xls"  
 }
 
-# setting up functions to check heaviest items on memory:
+# Function to check heaviest items on memory:
+{
 .ls.objects <- function (pos = 1, pattern, order.by,
                          decreasing=FALSE, head=FALSE, n=5) {
   napply <- function(names, fn) sapply(names, function(x)
@@ -56,10 +56,10 @@ lsos <- function(..., n=10) {
   .ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)
 }
 
-lsos()
+lsos()}
 
 # Birulatus heavies will be on E drive (at least for now), with E drive being backed up to HUJI server regularly
-B.heavies.spatial.path = 'E:/R/Birulatus_heavies/image/'
+B.heavies.spatial.path = 'E:/R/Birulatus_heavies/spatial/'
 B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
 B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
@@ -72,7 +72,11 @@ ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000
 ########################################################################################################
 # Datasets prepared earlier ----
 # from this script:
-
+eval.list       = readRDS("./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
+eval.summary    = readRDS("./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
+eval.summary.df = readRDS("./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
+methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
+top.algorithms  = c('rf','brt','svm','gam')
 
 # from previous scripts:
 package_names          = readRDS("rds/package_names.rds")
@@ -268,27 +272,7 @@ cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.98
 # I'm going to use TSS to define the topmodels - we have already seen that this is highly correlated with AUC.
 # To my knowledge; can't extract top models but can specify which ones to use when drawing ROC curves and running ensembles.
 
-# Approach 1: select top algorithms by frequency in top 5 list (by TSS) for each scenario ----
-
-# Extract and order top 5 models from each scenario:
-top5 = list()
-for (i in 1:length(eval.summary))                   {
-top5[[i]] = eval.summary[[i]][rank(eval.summary[[i]]$TSS)>=5,]
-top5[[i]] = top5[[i]][order(-top5[[i]]$TSS),]       }
-
-top5_df = do.call("rbind", top5)
-
-# extract how many times each method appears in the top 5:
-methods = list("cart","fda","gam","brt","rf","glm","mda","rpart","svm")
-methods.points = list()
-for (i in 1:length(methods))                                                                 {
-  methods.points[[i]] = data.frame(method = methods[[i]],   # number of times appeared in top five is named 'points'.
-                                    points = length(which(top5_df$method == methods[[i]])))  }
-methods.points.df = do.call("rbind", methods.points)
-(methods.points.df = methods.points.df[order(-methods.points.df$points),] )
-# gam, brt, rf, and svm all performed equally well, all appearing in all of the top 5s for each scenario.
-
-# Approach 2: selecting by average TSS and AUC values (the one I'm using) ----
+# Approach 1: selecting by average TSS and AUC values (the one I'm using) ----
 methods.summary = aggregate(model.inf.ev[, c("TSS", "AUC")], # improved from shnunit version, aggregates original list
                             model.inf.ev["method"], function(x) c(mean=mean(x), sd=sd(x)) )
 methods.summary$TSS.sd = methods.summary$TSS[,2]
@@ -302,12 +286,11 @@ methods.summary = methods.summary[,c(1,4,2,5,3)] # getting them back in a nice o
 (methods.summary = methods.summary[order(-methods.summary$TSS.mean),])
 rownames(methods.summary) <- 1:nrow(methods.summary)
 methods.summary
-write.xlsx(methods.summary,"./data/methods.summary.xlsx") # export to excel sprdsheet
-
-# plot TSS by method:
 methods.summary$method = factor(methods.summary$method, levels=methods.summary$method[order(-methods.summary$TSS.mean)])
+write.xlsx(methods.summary,"./data/methods.summary.xlsx") # export to excel sprdsheet
+saveRDS(methods.summary, "./rds/methods.summary.rds")
 
-# plot with error bars:
+# plot TSS by method, with error bars:
 palette(c("red","magenta","blue","cyan","green3","brown","gray","purple","yellow")) # adding&changing colour palette (default has 8 only)
 algorithm = 1:9
 lower.end = methods.summary$TSS.mean - methods.summary$TSS.sd
@@ -356,6 +339,26 @@ with(methods.summary, text(methods.summary$TSS.sd ~ methods.summary$TSS.mean,
 # legend("bottomleft", c("cart","fda","gam","brt","rf","glm","mda","rpart","svm"), pt.bg=c(1:9), pch=21, cex=1.1)
 dev.off()
 # Performance of the top 3 methods is as consistent as any other methods. The SD of TSS for RF models in particularly low.
+
+# Approach 2: select top algorithms by frequency in top 5 list (by TSS) for each scenario (obsolete) ----
+
+# Extract and order top 5 models from each scenario:
+top5 = list()
+for (i in 1:length(eval.summary))                   {
+  top5[[i]] = eval.summary[[i]][rank(eval.summary[[i]]$TSS)>=5,]
+  top5[[i]] = top5[[i]][order(-top5[[i]]$TSS),]       }
+
+top5_df = do.call("rbind", top5)
+
+# extract how many times each method appears in the top 5:
+methods = list("cart","fda","gam","brt","rf","glm","mda","rpart","svm")
+methods.points = list()
+for (i in 1:length(methods))                                                                 {
+  methods.points[[i]] = data.frame(method = methods[[i]],   # number of times appeared in top five is named 'points'.
+                                   points = length(which(top5_df$method == methods[[i]])))  }
+methods.points.df = do.call("rbind", methods.points)
+(methods.points.df = methods.points.df[order(-methods.points.df$points),] )
+# gam, brt, rf, and svm all performed equally well, all appearing in all of the top 5s for each scenario.
 
 # Approach 3: get all methods above certain TSS and AUC levels (obsolete) ----
 

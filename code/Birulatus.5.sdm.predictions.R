@@ -1,9 +1,7 @@
 # sdm.5.model.prediction and mapping ----
 
 ########################################################################################################
-# Housekeeping ----
-
-code.start.time = Sys.time()
+# Set up and install relevant packages and locations ----
 
 # clear user interface and free memory:
 if(!is.null(dev.list())) dev.off() # Clear plots
@@ -11,180 +9,152 @@ cat("\014")                        # Clear console
 rm(list=ls())                      # Clean workspace
 gc()
 
-# load packages:
-x<-c("sdm","usdm","raster","rgdal","tidyverse","png","beepr","xlsx","mailR","parallel")
-lapply(x, require, character.only = TRUE)
-installAll() # installs all the packages that 'sdm' relied on, if they aren't already installed.
+# ipak function: install (if not already installed) and load multiple R packages.
+ipak <- function(pkg){new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
+sapply(pkg, require, character.only = TRUE)}
+ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
+       "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
+       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx"))
+installAll() # installing everything the sdm relies on.
 
 emailme = function() {
-send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
-          subject="the loop is complete",   body="yeah yeah yeah",        html=T,
-          smtp=list(host.name = "smtp.gmail.com",          port = 465,
-                    user.name = "kerengila@gmail.com",     passwd = "Ivrit333",
-                    ssl = T), authenticate=T) #, attach.files="C:\\Users\\Deepanshu\\Nature.xls"  
+  send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
+            subject="the loop is complete",   body="yeah yeah yeah",        html=T,
+            smtp=list(host.name = "smtp.gmail.com",          port = 465,
+                      user.name = "kerengila@gmail.com",     passwd = "Ivrit333",
+                      ssl = T), authenticate=T) #, attach.files="C:\\Users\\Deepanshu\\Nature.xls"  
 }
-
-# load data
-
-heavies.spatial.path = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/spatial/'
-heavies.rds.path     = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/'
-heavies.image.path   = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/images/'
-
-# reference information:
-borders       = readRDS("./rds_objects/borders.rds")  
-major.cities  = readRDS("./rds_objects/major.cities.rds")
-small.cities  = readRDS("./rds_objects/small.cities.rds")
-towns         = readRDS("./rds_objects/towns.rds")
-villages      = readRDS("./rds_objects/villages.rds")
-groads        = readRDS("./rds_objects/groads.rds")
-
-# observational and prediction datasets
-b_package_names    = readRDS("./rds_objects/b_package_names.rds")
-b_data_packages    = readRDS("./rds_objects/b_data_packages.rds")
-b.preds            = readRDS("//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/b.preds.rds"); plot(b.preds)
-b.combo.descriptions = readRDS("./rds_objects/b.combo.descriptions.rds")
-
-s.raster.list.names = list("Rain", "Jant", "Jult", "TWet", "Slop", "Soil", "Vegt")
-# s.raster.list       = readRDS(paste0(heavies.rds.path,"s.raster.list.rds"))
-s.preds             = readRDS(paste0(heavies.rds.path,"s.preds.rds")) # raster stack
-
-s.6scen.scen.names             = readRDS("./rds_objects/s.6scen.scen.names.rds")
-s.6scenario.descriptions       = readRDS("./rds_objects/s.6scenario.descriptions.rds")
-# s.6scen.obs.packages           = readRDS("./rds_objects/s.6scen.obs.packages.rds")
-s.6scen.data.packages          = readRDS("./rds_objects/s.6scen.data.packages.rds")
-
-beershebensis.buffer = readRDS("./rds_objects/beershebensis.buffer_incWB.rds"); 
-plot(beershebensis.buffer, xlim=c(34.267,35.39774), ylim=c(30.50798,31.72056))
-schreiberi.buffer    = readRDS("./rds_objects/schreiberi.buffer.rds"); plot(schreiberi.buffer)
-plot(schreiberi.buffer, xlim=c(34.27173, 35.3248), ylim=c(31.12667, 33.10742))
-
-bs.full  = readRDS("./rds_objects/bs.full.rds")    # b = beershebensis, s = surveys
-bsp.full = readRDS("./rds_objects/bsp.full.rds")  # presences
-bsa.full = readRDS("./rds_objects/bsa.full.rds")  # absences
-bc.full  = readRDS("./rds_objects/bc.full.rds")   # b = beershebensis, c = collections
-
-ss.full    = readRDS("./rds_objects/ss.full.rds")   # all schreiberi survey data (errors removed)
-ssp.full   = readRDS("./rds_objects/ssp.full.rds")  # presences
-ssa.full   = readRDS("./rds_objects/ssa.full.rds")  # absences
-sc.full    = readRDS("./rds_objects/sc.full.rds")   # s = schreiberi, c = collections
-sc.nodups  = readRDS(paste0(heavies.rds.path,"sc.nodups.rds"))                # from sript 2a; elsa calc
-sc.r       = readRDS(paste0(heavies.rds.path,"s.collections.reliables.rds"))  # from script 2b: elsa calc
-
-# eval.summary = readRDS("./rds_objects/b.eval.summary.5fold.100reps.rds")  
 
 # List objects by size
 {
-.ls.objects <- function (pos = 1, pattern, order.by, decreasing=FALSE, head=FALSE, n=5) {
-  napply <- function(names, fn) sapply(names, function(x)
-    fn(get(x, pos = pos)))
-  names <- ls(pos = pos, pattern = pattern)
-  obj.class <- napply(names, function(x) as.character(class(x))[1])
-  obj.mode <- napply(names, mode)
-  obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
-  obj.prettysize <- napply(names, function(x) {
-    format(utils::object.size(x), units = "auto") })
-  obj.size <- napply(names, object.size)
-  obj.dim <- t(napply(names, function(x)
-    as.numeric(dim(x))[1:2]))
-  vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
-  obj.dim[vec, 1] <- napply(names, length)[vec]
-  out <- data.frame(obj.type, obj.size, obj.prettysize, obj.dim)
-  names(out) <- c("Type", "Size", "PrettySize", "Length/Rows", "Columns")
-  if (!missing(order.by))
-    out <- out[order(out[[order.by]], decreasing=decreasing), ]
-  if (head)
-    out <- head(out, n)
-  out                                                                                  }
-lsos <- function(..., n=10) {.ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)}}
+  .ls.objects <- function (pos = 1, pattern, order.by, decreasing=FALSE, head=FALSE, n=5) {
+    napply <- function(names, fn) sapply(names, function(x)
+      fn(get(x, pos = pos)))
+    names <- ls(pos = pos, pattern = pattern)
+    obj.class <- napply(names, function(x) as.character(class(x))[1])
+    obj.mode <- napply(names, mode)
+    obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
+    obj.prettysize <- napply(names, function(x) {
+      format(utils::object.size(x), units = "auto") })
+    obj.size <- napply(names, object.size)
+    obj.dim <- t(napply(names, function(x)
+      as.numeric(dim(x))[1:2]))
+    vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
+    obj.dim[vec, 1] <- napply(names, length)[vec]
+    out <- data.frame(obj.type, obj.size, obj.prettysize, obj.dim)
+    names(out) <- c("Type", "Size", "PrettySize", "Length/Rows", "Columns")
+    if (!missing(order.by))
+      out <- out[order(out[[order.by]], decreasing=decreasing), ]
+    if (head)
+      out <- head(out, n)
+    out                                                                                  }
+  lsos <- function(..., n=10) {.ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)}}
 lsos()
 
+# Birulatus heavies will be on E drive (at least for now), with E drive being backed up to HUJI server regularly
+B.heavies.spatial.path = 'E:/R/Birulatus_heavies/spatial/'
+B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
+B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
+
+# Datasets prepared earlier ----
+# from this script:
+
+# from previous scripts:
+eval.list       = readRDS("./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
+eval.summary    = readRDS("./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
+eval.summary.df = readRDS("./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
+methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
+top.algorithms  = c('rf','brt','svm','gam')
+
+package_names          = readRDS("rds/package_names.rds")
+scenario.descriptions  = readRDS("rds/scenario.descriptions.rds")
+obs_packages           = readRDS("rds/obs_packages.rds")
+data_packages          = readRDS("rds/data_packages.rds")
+
+borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
+israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
+israel.noWB      = readRDS("rds/israel.noWB.rds")
+
+birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
+xlims = c(35.14081, 35.86214)
+ylims = c(31.59407, 33.00496)
+
+major.cities = readRDS("./rds/major.cities.rds")
+small.cities = readRDS("./rds/small.cities.rds")
+large.towns  = readRDS("./rds/large.towns.rds")
+towns        = readRDS("./rds/towns.rds")
+villages     = readRDS("./rds/villages.rds")
+
+groads       = readRDS("./rds/groads.rds")
+
+raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
+raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
+preds.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack
+
+
+bi.raw = readRDS("./rds/bi.raw.rds") 
+bi     = readRDS("./rds/bi.rds") 
+bip    = readRDS("./rds/bip.rds")
+bia    = readRDS("./rds/bia.rds")
+
+
+
+
 ########################################################################################################
-# Script outputs ----
-
-b.model.list.complete  = readRDS(paste0(heavies.rds.path,"b.model.list.complete.rds")) 
-s.model.list.complete.2scen  = readRDS(paste0(heavies.rds.path,"s.model.list.complete.2scen.rds")) 
-
-# To retreive prediction and predicted occurrence rasters:
-
-# {
-# s.predmaps.rf    = list()
-# s.predmaps.svm   = list()
-# s.predmaps.gam   = list()
-
-# for(i in 1:2) {     # or do to length of s scenario names if applicable
-#  
-#   filename.rf  = paste0(heavies.spatial.path, 'Prediction ', s.6scen.scen.names[[i]], ' - RF.tif')
-#   s.predmaps.rf[[i]] = raster(filename.rf)
-#   plot(predmaps.rf[[i]], main=paste(s.6scen.scen.names[[i]],"RF, TSS =", s.eval.summary[[i]][5,"TSS"]))
-#   
-#   filename.svm = paste0(heavies.spatial.path, 'Prediction ', s.6scen.scen.names[[i]], ' - SVM.tif')
-#   predmaps.svm[[i]] = raster(filename.svm)
-#   plot(predmaps.svm[[i]], main=paste(s.6scen.scen.names[[i]],"SVM, TSS =", s.eval.summary[[i]][9,"TSS"]))
-#   
-#   filename.gam = paste0(heavies.spatial.path, 'Prediction ', s.6scen.scen.names[[i]], ' - GAM.tif')
-#   predmaps.gam[[i]] = raster(filename.gam)
-#   plot(predmaps.gam[[i]], main=paste(s.6scen.scen.names[[i]],"GAM, TSS =", s.eval.summary[[i]][3,"TSS"])) }
-
-########################################################################################################
-# Complete models for each data combo-algorith combination: Beershebensis  ----
+# Complete models  ----
 
 # create models for each combo
-b.model.list.complete = list() # number two is with DEM included.
+model.list.complete = list()
 
-for (i in 1:length(b_data_packages))                                                                        {
+for (i in 1:length(data_packages))                                                                        {
   start.time = Sys.time()
-  print(b_package_names[i])
-  data = b_data_packages[[i]]
-  b.model.list.complete[[i]] = sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda','rpart','svm'))
-  print(paste(b_package_names[[i]]," loop took ", difftime(Sys.time(),start.time, units="mins")," minutes"))}
+  print(package_names[i])
+  data = data_packages[[i]]
+  model.list.complete[[i]] = sdm(occurrence ~ ., data = data, methods = top.algorithms)
+  print(paste(package_names[[i]]," loop took ", difftime(Sys.time(),start.time, units="mins")," minutes"))}
 
 # # see how they went:
 # b_package_names[[1]]; b.model.list.complete[[1]]
 # b_package_names[[2]]; b.model.list.complete[[2]]
 # b_package_names[[3]]; b.model.list.complete[[3]]
 # b_package_names[[4]]; b.model.list.complete[[4]]
-# b_package_names[[5]]; b.model.list.complete[[5]]
-# b_package_names[[6]]; b.model.list.complete[[6]]
-# b_package_names[[7]]; b.model.list.complete[[7]]
-# b_package_names[[8]]; b.model.list.complete[[8]]
-# b_package_names[[9]]; b.model.list.complete[[9]]
 # b.model.list.complete[[i]][[5]]
 
-# saveRDS(b.model.list.complete, paste0(heavies.rds.path,"b.model.list.complete.rds"))  
-
 ########################################################################################################
-# Retreive evaluation summary data for reference: Beershebensis ----
-eval.list       = readRDS("./rds_objects/eval.list.5fold.100reps.rds")  # 'raw' list of full eval data from each combo
-eval.summary    = readRDS("./rds_objects/eval.summary.5fold.100reps.rds")    # consolidated list form
-eval.summary.df = do.call("rbind", eval.summary) # converting the list to a single dataframe for easy plotting
-
-########################################################################################################
-# Predict the model outputs: Beershebensis ----
+# Predict the model outputs ----
 
 predmaps.rf    = list()
+predmaps.brt   = list()
 predmaps.svm   = list()
 predmaps.gam   = list()
 
-for (i in 1:length(b_package_names))                                                           {
+for (i in 1:length(package_names))                                                           {
   start.time       = Sys.time()
   par(mar=c(2,2,2,1))
 
-  filename.rf  = paste0(heavies.spatial.path, 'Prediction ', b_package_names[[i]], ' - RF.tif')
-  predmaps.rf[[i]] = predict(b.model.list.complete[[i]], newdata=b.preds, filename = filename.rf, 
-                             format="GTiff", overwrite=TRUE, w=5, nc=20)
-  plot(predmaps.rf[[i]], main=paste(b_package_names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
+  filename.rf  = paste0(B.heavies.spatial.path, 'Prediction ', package_names[[i]], ' - RF.tif')
+  predmaps.rf[[i]] = predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.rf, 
+                             format="GTiff", overwrite=TRUE, w=1, nc=20)
+  plot(predmaps.rf[[i]], main=paste(package_names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
   
-  filename.svm = paste0(heavies.spatial.path, 'Prediction ', b_package_names[[i]], ' - SVM.tif')
-  predmaps.svm[[i]]= predict(b.model.list.complete[[i]], newdata=b.preds, filename = filename.svm, 
-                             format="GTiff", overwrite=TRUE, w=9, nc=20)
-  plot(predmaps.svm[[i]], main=paste(b_package_names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
+  filename.brt  = paste0(B.heavies.spatial.path, 'Prediction ', package_names[[i]], ' - BRT.tif')
+  predmaps.brt[[i]] = predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.brt, 
+                             format="GTiff", overwrite=TRUE, w=2, nc=20)
+  plot(predmaps.brt[[i]], main=paste(package_names[[i]],"BRT, TSS =", eval.summary[[i]][4,"TSS"]))
   
-  filename.gam = paste0(heavies.spatial.path, 'Prediction ', b_package_names[[i]], ' - GAM.tif')
-  predmaps.gam[[i]]= predict(b.model.list.complete[[i]], newdata=b.preds, filename = filename.gam, 
+  filename.svm = paste0(B.heavies.spatial.path, 'Prediction ', package_names[[i]], ' - SVM.tif')
+  predmaps.svm[[i]]= predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.svm, 
                              format="GTiff", overwrite=TRUE, w=3, nc=20)
-  plot(predmaps.gam[[i]], main=paste(b_package_names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))
+  plot(predmaps.svm[[i]], main=paste(package_names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
+  
+  filename.gam = paste0(B.heavies.spatial.path, 'Prediction ', package_names[[i]], ' - GAM.tif')
+  predmaps.gam[[i]]= predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.gam, 
+                             format="GTiff", overwrite=TRUE, w=4, nc=20)
+  plot(predmaps.gam[[i]], main=paste(package_names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))
 
-  print(paste(b_package_names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
+  print(paste(package_names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
 
 # how to view model info:
 # summary(predmaps.gam[[i]])
