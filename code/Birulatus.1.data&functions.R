@@ -66,12 +66,13 @@ borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("r
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
 
-birulatus.study  = readRDS("rds/birulatus.study.rds")
+birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
 xlims = c(35.14081, 35.86214)
 ylims = c(31.59407, 33.00496)
 
 major.cities = readRDS("./rds/major.cities.rds")
 small.cities = readRDS("./rds/small.cities.rds")
+large.towns  = readRDS("./rds/large.towns.rds")
 towns        = readRDS("./rds/towns.rds")
 villages     = readRDS("./rds/villages.rds")
 
@@ -81,8 +82,13 @@ raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
 raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
 preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
 
+bi.raw = readRDS("./rds/bi.raw.rds") 
+bi     = readRDS("./rds/bi.rds") 
+bip    = readRDS("./rds/bip.rds")
+bia    = readRDS("./rds/bia.rds")
 
-# old... to use as templates...
+# old... to use as templates
+...
 {
 s.preds             = readRDS(paste0(heavies.rds.path,"s.preds.rds")) # raster stack
 
@@ -110,12 +116,6 @@ firing_no_natcons             = readRDS(paste0(heavies.rds.path,"firing_no_natco
 firing_excl_dist_l            = readRDS(paste0(heavies.rds.path,"firing_excl_dist_l.rds"))
 firing_excl_alllanduse        = readRDS(paste0(heavies.rds.path,"firing_excl_alllanduse.rds"))
 }
-
-bs.full  = readRDS("./rds/bs.full.rds")    # b = beershebensis, s = surveys
-bsp.full = readRDS("./rds/bsp.full.rds")  # presences
-bsa.full = readRDS("./rds/bsa.full.rds")  # absences
-
-bc.full  = readRDS("./rds/bc.full.rds")   # b = beershebensis, c = collections
 
 #######################################################################################################################
 # Importing reference datasets and study area boundaries ----
@@ -163,6 +163,7 @@ villages      = population.centres[population.centres$category == "Village", ]
 
 saveRDS(major.cities, "./rds/major.cities.rds")
 saveRDS(small.cities, "./rds/small.cities.rds")
+saveRDS(large.towns, "./rds/large.towns.rds")
 saveRDS(towns, "./rds/towns.rds")
 saveRDS(villages, "./rds/villages.rds")
 
@@ -527,20 +528,24 @@ saveRDS(preds,        paste0(B.heavies.rds.path,"preds.rds")) # raster stack
 # .nodups after removal of duplicates (done in script #3)
 # clean version: eg bi = birulatus survey data ready for modelling
 
-# Birulatus observations data ----
+# Birulatus observations data 
 bi.raw <- readOGR(dsn="E:/GIS working/layers/birulatus", layer="birulatus_corrected") # reading species obs
 head(bi.raw) 
 str(bi.raw) 
 summary(bi.raw)
 plot(bi.raw); lines(israel.WB, col="blue")
+hist(bi.raw$lat)
 
 bi = bi.raw[birulatus.study, ] # super-simple spatial subsetting by polygon clip
 bi$occurrence = ifelse(bi$Birulatus == "Yes",1,0) 
 table(bi$occurrence, bi$Birulatus) # good
 bi$Birulatus = NULL
 
+bip = bi[bi$occurrence == 1,]
+bia = bi[bi$occurrence == 0,]
+
 # Plot observations
-png(filename = "images/obs 1 - Birulatus survey data by presence-absence.png", width=10, height=20, units='cm', res=600)
+png(filename = "images/obs 1 - Birulatus survey data by presence-absence.png", width=10, height=20, units='cm',res=600)
 par(mar=c(1,1,2,1), mfrow=c(1,1))
 plot(birulatus.study, col = NA,border="darkgreen",
      main="Birulatus survey data (181 features)", cex.main = 1,  font.main= 2)
@@ -552,55 +557,11 @@ points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
 selected.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
 points(selected.towns,        pch=21, col='black', bg='yellow', cex=0.8)
 with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
-with(selected.towns, text(selected.towns$lat~selected.towns$lon, labels=selected.towns$name,pos=4,cex=0.6, offset=0.3)) 
+with(selected.towns, text(selected.towns$lat~selected.towns$lon, labels=selected.towns$name,pos=4,cex=0.6, offset=0.3))
 legend("topleft", c("Presence (83 observations)", "Absence (98 observations)"), col=c("blue","red"), pch=16, cex=.7)
 dev.off()
 
 # saveRDS(bi.raw,  "./rds/bi.raw.rds") 
 # saveRDS(bi,      "./rds/bi.rds")
-
-par(mar=c(1.5,1.5,1.5,1.5), mfrow = c(1,1))
-plot  (bc.full, pch=16, cex=1)
-lines(borders, lty=5, lwd=2, col="grey15") # hmm, some outliers here.
-hist(bc.full$lat) # there are two outliers with latitude below 30 degrees (ie way outside of israel). Remove.
- 
-
-# plot by source:
-png(filename = "./output_images/obs 2a - Beersheb coll. data by source.png", width=10, height=9, units='cm', res=600)
-summary(bc.full@data$source)
-par(mar=c(1,1,1,1), mfrow = c(1,1))
-plot  (bc.full, pch=16, cex=.2,
-      main="Beershebensis collections data (316 features: two outliers removed)",cex.main = .6,  font.main= 2) 
-lines(borders, lty=1, lwd=1.5, col="seashell4")
-lines(groads,  col="grey73")
-points(major.cities, pch=21, col='black', bg='yellow')
-with  (major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.5, offset=0.3))
-points(bc.full[bc.full$source == "HUJR",], col='green',  pch=16, cex=0.5)
-points(bc.full[bc.full$source == "TAU",],  col='purple', pch=16, cex=0.5)
-legend("bottomright", c("HUJR (133 observations)", "TAU (181 observations)"), col=c("green","purple"), pch=16, cex=.5)
-dev.off()
-
-# plot by accuracy:
-png(filename="./output_images/obs 2b - Beersheb coll. data by accuracy.png", width=10, height=9, units='cm', res=600)
-summary(bc.full@data$positional_accuracy)
-par(mar=c(1,1,1,1), mfrow = c(1,1))
-plot  (bc.full, pch=16, cex=.1,
-      main="Beershebensis collections data by accuracy", cex.main=0.6,  font.main=2)
-lines(borders, lty=5, lwd=1.5, col="seashell4")
-lines(groads,  col="grey73")
-points(major.cities, pch=21, col='black', bg='yellow')
-with  (major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=.5, offset=0.3))#,font=2
-points(bc.full[bc.full$positional_accuracy == "low accuracy",],col='red',        pch=16, cex=.5)
-points(bc.full[bc.full$positional_accuracy == "moderate accuracy",],col='green', pch=16, cex=.5)
-points(bc.full[bc.full$positional_accuracy == "high accuracy",],col='blue',      pch=16, cex=.5)
-legend("bottomright", c("high accuracy (13)", "moderate accuracy (31)","low accuracy (270)"),
-      col=c("blue","green","red"), pch=16, cex=.5, text.font=1)
-dev.off()
-
-# saveRDS(bc.full,"./rds/bc.full.rds")
-
-# Summary of observational datasets ----
- 
-# Beershebensis survey data:       202 features: 75 presences, 127 absences 
-# Beershebensis collections data:  316 features: two outliers removed. 
-#                                  Positional accuracy:13 high,31 moderate,272 low.
+# saveRDS(bip,      "./rds/bip.rds")
+# saveRDS(bia,      "./rds/bia.rds")
