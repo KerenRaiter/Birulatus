@@ -1,4 +1,4 @@
-# sdm.4.model: fitting the data and running the models ----
+# sdm.4.model: Running the models and evaluating them ----
 
 # There are three main functions provide the main steps of developing/using species distibution models. The three steps include data preparation, model ﬁtting and evaluation, and prediction. The functions used for these steps:
 # • sdmData: to read data from diﬀerent formats, and prepare a data object. Both species (single or multiple) and explanatory variables can be introduced to the function, as well as other information such as spatial coordinates, time, grouping variables, etc.
@@ -6,12 +6,17 @@
 # • predict: when models are ﬁtted, they can be used to predict/project given a new dataset.
 
 ########################################################################################################
-# Housekeeping and load required data ----
+# Set up and install relevant packages and locations ----
 
-# load packages:
-x<-c("sdm","usdm","raster","rgdal","tidyverse","png","beepr","xlsx","mailR","parallel")
-lapply(x, require, character.only = TRUE)
-installAll() # installs all the packages that 'sdm' relied on, if they aren't already installed.
+# ipak function: install (if not already installed) and load multiple R packages.
+ipak <- function(pkg){new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
+sapply(pkg, require, character.only = TRUE)}
+ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
+       "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
+       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx")) # removed sf, may be causing problems
+# installed.packages()
+installAll() # installing everything the sdm relies on.
 
 emailme = function() {
 send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
@@ -21,59 +26,7 @@ send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
                     ssl = T), authenticate=T) #, attach.files="C:\\Users\\Deepanshu\\Nature.xls"  
 }
 
-# load data
-
-heavies.spatial.path = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/spatial/'
-heavies.rds.path     = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/'
-heavies.image.path   = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/images/'
-
-# load data
-
-# reference info:
-borders     = readRDS("./rds_objects/borders.rds")  
-major.cities  = readRDS("./rds_objects/major.cities.rds")
-small.cities  = readRDS("./rds_objects/small.cities.rds")
-towns         = readRDS("./rds_objects/towns.rds")
-villages      = readRDS("./rds_objects/villages.rds")
-groads        = readRDS("./rds_objects/groads.rds")
-
-# variable data:
-b.raster.list.names = list("Rain", "Jant", "Jult","TWet", "Slop", "Soil")
-b.raster.list       = readRDS(paste0(heavies.rds.path,"b.raster.list.rds"))
-b.preds             = readRDS(paste0(heavies.rds.path,"b.preds.rds")) # raster stack
-s.raster.list.names = list("Rain", "Jant", "Jult", "TWet", "Slop", "Soil", "Vegt")
-s.raster.list       = readRDS(paste0(heavies.rds.path,"s.raster.list.rds"))
-s.preds             = readRDS(paste0(heavies.rds.path,"s.preds.rds")) # raster stack
-
-# observational datasets:
-beershebensis.buffer = readRDS("./rds_objects/beershebensis.buffer_incWB.rds"); plot(beershebensis.buffer)
-bs       = readRDS("./rds_objects/b.surveys.rds")
-bc       = readRDS("./rds_objects/b.collections.rds");     length(bc);  length(unique(bc$lat)); length(unique(bc$lon))
-bsp      = readRDS("./rds_objects/b.surveys.present.rds"); length(bsp); length(unique(c(bsp$WGS84_lat)))
-bsa      = readRDS("./rds_objects/b.surveys.absent.rds")
-bc.r     = readRDS("./rds_objects/b.collections.reliables.rds"); plot(bc.r); length(bc.r)
-bsa.r    = readRDS("./rds_objects/b.surveys.absence.reliables.rds")
-
-schreiberi.buffer    = readRDS("./rds_objects/schreiberi.buffer.rds"); plot(schreiberi.buffer)
-ss.full              = readRDS("./rds_objects/ss.full.rds")   # all schreiberi survey data (errors removed)
-ssp.full             = readRDS("./rds_objects/ssp.full.rds")  # presences
-ssa.full             = readRDS("./rds_objects/ssa.full.rds")  # absences
-
-sc.full              = readRDS("./rds_objects/sc.full.rds")   # s = schreiberi, c = collections
-sc.nodups            = readRDS(paste0(heavies.rds.path,"sc.nodups.rds"))                # from sript 2a; elsa calc
-sc.r                 = readRDS(paste0(heavies.rds.path,"s.collections.reliables.rds"))  # from script 2b: elsa calc
-
-# data packages:
-b_package_names = readRDS("./rds_objects/b_package_names.rds")
-b_data_packages = readRDS("./rds_objects/b_data_packages.rds")
-
-# for Schreiberi the '6-scenario' option: inclused with and without absences, and collections data, altogether
-s.6scen.scen.names             = readRDS("./rds_objects/s.6scen.scen.names.rds")
-s.6scenario.descriptions       = readRDS("./rds_objects/s.6scenario.descriptions.rds")
-s.6scen.data.packages          = readRDS("./rds_objects/s.6scen.data.packages.rds")
-
-# List objects by size ----
-# from https://stackoverflow.com/questions/1358003/tricks-to-manage-the-available-memory-in-an-r-session?rq=1 
+# setting up functions to check heaviest items on memory:
 .ls.objects <- function (pos = 1, pattern, order.by,
                          decreasing=FALSE, head=FALSE, n=5) {
   napply <- function(names, fn) sapply(names, function(x)
@@ -105,23 +58,52 @@ lsos <- function(..., n=10) {
 
 lsos()
 
-#########################################################################################################
-# Datasets I prepared earlier in this script (not comprehensive) ----
+# Birulatus heavies will be on E drive (at least for now), with E drive being backed up to HUJI server regularly
+B.heavies.spatial.path = 'E:/R/Birulatus_heavies/image/'
+B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
+B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
-# retreive evaluation summary data
-# eval.list       = readRDS("./rds_objects/b.eval.list.5fold.100reps.rds")  # 'raw' list of full eval data from each combo
-# eval.summary    = readRDS("./rds_objects/b.eval.summary.5fold.100reps.rds")    # consolidated list form
-# eval.summary.df = readRDS("./rds_objects/b.eval.summary.df.5fold.100reps.rds") # consolidated table form
+#B.heavies.spatial.path = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/spatial/'
+#B.heavies.rds.path     = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/'
+#B.heavies.image.path   = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/images/'
 
-# s.6scen.model.list.cv.100n = readRDS(paste0(heavies.rds.path, "s.6scen.model.list.cv.100n.rds")) # huge object
+ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +towgs84=-24.002400,-17.103200,-17.844400,-0.33077,-1.85269,1.66969,5.4248 +units=m +no_defs")
 
-s.eval.list    = readRDS("./rds_objects/s.eval.list.5fold.100reps.rds")          # 'raw' list of eval data from each model
-s.eval.summary = readRDS("./rds_objects/s.eval.summary.5fold.100reps.rds")       # consolidated: multiple reps averaged
-s.eval.summary = readRDS("./rds_objects/s.eval.summary.topmethods.rds")       # consolidated: multiple reps averaged
-s.eval.summary.df = readRDS("./rds_objects/s.eval.summary.df.5fold.100reps.rds") # superconsolidate:all scenarios, 1table)
+########################################################################################################
+# Datasets prepared earlier ----
+# from this script:
 
-# "./output_data/s.model evaluation summary(5fold,100reps).xlsx") # export to excel sprdsheet
-# "./output_data/s.model evaluation summary onetable(5fold,100reps2).xlsx")
+
+# from previous scripts:
+package_names          = readRDS("rds/package_names.rds")
+scenario.descriptions  = readRDS("rds/scenario.descriptions.rds")
+obs_packages           = readRDS("rds/obs_packages.rds")
+data_packages          = readRDS("rds/data_packages.rds")
+
+borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
+israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
+israel.noWB      = readRDS("rds/israel.noWB.rds")
+
+birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
+xlims = c(35.14081, 35.86214)
+ylims = c(31.59407, 33.00496)
+
+major.cities = readRDS("./rds/major.cities.rds")
+small.cities = readRDS("./rds/small.cities.rds")
+large.towns  = readRDS("./rds/large.towns.rds")
+towns        = readRDS("./rds/towns.rds")
+villages     = readRDS("./rds/villages.rds")
+
+groads       = readRDS("./rds/groads.rds")
+
+raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
+raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
+
+bi.raw = readRDS("./rds/bi.raw.rds") 
+bi     = readRDS("./rds/bi.rds") 
+bip    = readRDS("./rds/bip.rds")
+bia    = readRDS("./rds/bia.rds")
 
 ########################################################################################################
 # Validation information for reference ----
@@ -193,42 +175,26 @@ a.bt; a.bt.e = getEvaluation(a.bt)
 
 # 
 ########################################################################################################
-# Create evaluation models for each dataset combination: Beershebensis -----
+# Create evaluation models for each scenario -----
 # Define input list, output list, and function 
 
 # define function with 'n' runs, 'cv.folds' folds cross-validation, taking 30 percent as test: 
 sdm.cv = function(data) {
   sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda','rpart','svm'), 
       n=100, replication = 'cv', cv.folds=5) }
-# See "Exploration of the effect of the different evaluation approaches" and below for other ways to evaluate.
 
-# create models for each combo 
+# create models for each scenario 
 model.list.cv.100n = list()
 
-for (i in 1:length(b_data_packages))                                                                        {
+for (i in 1:length(data_packages))                                                                        {
   start.time = Sys.time()
-  print(b_package_names[i])
-  data = b_data_packages[[i]]
+  print(package_names[i])
+  data = data_packages[[i]]
   model.list.cv.100n[[i]] = sdm.cv(data)  
-  print(paste(b_package_names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
+  print(paste(package_names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
 
 # saveRDS(model.list.cv.100n, "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
 emailme()
-
-# # modelling with subsampling to save time (not doing this any more)
-{
-# model.list.sub = list()
-# sdm.sub = function(data) {
-#   sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda','rpart','svm'), 
-#       n=5, replication = 'sub', test.percent = 30) }
-# 
-# for (i in 1:length(b_data_packages))                                                             {
-#   start_time = Sys.time()
-#   print(b_package_names[i])
-#   data = b_data_packages[[i]]
-#   model.list.sub[[i]] = sdm.sub(data)  
-#   print(paste(b_package_names[[i]]," loop took ", (Sys.time()-start_time)," minutes/.seconds"))  }
-}
   
 # # see how they went:
 # b_package_names[[1]]; model.list.cv.100n[[1]]
@@ -246,45 +212,13 @@ emailme()
 
 # or retreive from saved to prevent running the above code:
 # model.list.cv.100n  = readRDS( "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
-########################################################################################################
-# Create evaluation models for each dataset combination: Schreiberi -----
-# Define input list, output list, and function 
-
-# define function with 'n' runs, 'cv.folds' folds cross-validation, taking 30 percent as test: 
-sdm.cv = function(data) {
-  sdm(occurrence ~ ., data = data, methods = c('rf','gam','svm'), # temporary removal: "cart",'fda','gam','brt','rf','glm','mda','rpart','svm'
-      n=20, replication = 'cv', cv.folds = 5) }
-
-# create models for each combo 
-scenario.names = s.6scen.scen.names
-s.eval.models.topmethods = list()
-
-for (i in 1:length(scenario.names))                   { 
-  start.time = Sys.time()
-  print(scenario.names[i])
-  data = s.6scen.data.packages[[i]]
-  s.eval.models.topmethods[[i]] = sdm.cv(data)  
-  print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes")) }
-
-saveRDS(s.eval.models.topmethods, paste0(heavies.rds.path,  "s.eval.model.list.topmethods_wkkl.rds"))
-
-emailme()
-Sys.time()
-
-# # see how they went:
-s.6scen.scen.names[[1]]; s.eval.model.list.topmethods[[1]]
-s.6scen.scen.names[[2]]; s.eval.model.list.topmethods[[2]]
-s.6scen.scen.names[[3]]; s.eval.model.list.topmethods[[3]]
-s.6scen.scen.names[[4]]; s.eval.model.list.topmethods[[4]]
-s.6scen.scen.names[[5]]; s.eval.model.list.topmethods[[5]]
-s.6scen.scen.names[[6]]; s.eval.model.list.topmethods[[6]]
 
 ########################################################################################################
-# Summarise model evaluations by methods for each dataset combination (Same code for Beersheb & Sch-----
-eval.list = list()    # evaluation data, by model (i.e. 4500 models; 100reps x 5 folds x 9 algorithims, for each of 9 datacombos)
-eval.summary = list() # list of evaluation data, averaged by algorithim (i.e. 9 dataframes of 9 rows: 9 data combos X 9 algorithms)
+# Summarise model evaluations by methods for each scenario -----
+eval.list = list() # evaluation data by model (i.e. 4500 models:100reps x5 folds x9 algs, for each of 9 scenarios)
+eval.summary = list() # list of evaluation data, averaged by alg (i.e. 9 dataframes of 9 rows:9 scenarios X 9 algs)
 
-modelset = s.eval.models.topmethods # to prevent multiple repetitions of exact model set name below:
+modelset = model.list.cv.100n # to prevent having to repeat this multiple times in the code below:
 for (i in 1:length(modelset))                                 {
   model.inf.ev = NULL
   # extract model info and eval statistics and merge them (change name of model list as appropriate):
@@ -295,7 +229,7 @@ for (i in 1:length(modelset))                                 {
   # then put them into list and aggregate them
   eval.list[[i]]   = model.inf.ev 
   eval.summary[[i]]= data.frame(method=aggregate(model.inf.ev$method, by=list(model.inf.ev$method),FUN=mode)[1],
-                                data_combo = s.6scen.scen.names[[i]],          # keep this line relevant!
+                                scenario = package_names[[i]],          # keep this line relevant!
                                 TSS     = aggregate(model.inf.ev$TSS,       by=list(model.inf.ev$method),  FUN=mean)[2],
                                 TSS_sd  = aggregate(model.inf.ev$TSS,       by=list(model.inf.ev$method),  FUN=sd)  [2],
                                 AUC     = aggregate(model.inf.ev$AUC,       by=list(model.inf.ev$method),  FUN=mean)[2],
@@ -306,102 +240,37 @@ for (i in 1:length(modelset))                                 {
                                 obs.prev= aggregate(model.inf.ev$Prevalence,by=list(model.inf.ev$method),  FUN=mean)[2],
                                 threshold= aggregate(model.inf.ev$threshold,by=list(model.inf.ev$method),  FUN=mean)[2],
                                 total.mods=aggregate(model.inf.ev$method,   by=list(model.inf.ev$method),FUN=length)[2])
-  names(eval.summary[[i]])=c('method','data_combo','TSS','TSS_sd','AUC','AUC_sd','kappa','COR','deviance',
+  names(eval.summary[[i]])=c('method','scenario','TSS','TSS_sd','AUC','AUC_sd','kappa','COR','deviance',
                              'obs.prevalence','threshold.mss','total_models')   }
 
 eval.summary
 eval.summary.df = do.call("rbind", eval.summary) # converting the list to a single dataframe for easy plotting
 
-# Schreiberi: comparing before and after adding the beershebensis-survey absences in:
-options(digits=2)
-eval.summary[[1]]$TSS   # 0.64 0.50 0.69 0.65 0.78 0.56 0.57 0.65 0.62 new ones
-s.eval.summary[[1]]$TSS[] # 0.58 0.47 0.68 0.61 0.76 0.52 0.56 0.61 0.55 old
-eval.summary[[2]]$TSS   # 0.65 0.51 0.71 0.66 0.79 0.57 0.57 0.67 0.64 new ones
-s.eval.summary[[2]]$TSS # 0.59 0.49 0.70 0.62 0.77 0.53 0.56 0.63 0.58 old. 
-eval.summary[[3]]$TSS   # 0.69 0.53 0.71 0.68 0.81 0.58 0.62 0.70 0.73 new ones
-s.eval.summary[[3]]$TSS # 0.64 0.49 0.68 0.64 0.79 0.55 0.60 0.65 0.69 old. 
-# New ones, i.e. with additional absences included, are consistently better. So replace first 3 of old eval.summary:
-summary(s.eval.list)
-s.eval.list[[3]]    = eval.list[[3]]    # 1, 2, then 3: replaced digits.
-s.eval.summary[[3]] = eval.summary[[3]] # 1, 2, then 3: replaced digits.
-s.eval.summary[[6]]$data_combo = "Schreiberi Scenario F"
-s.eval.summary.df = do.call("rbind", s.eval.summary) # converting the list to a single dataframe for easy plotting
-
-# Schreiberi: comparing before and after reducing study area size and absence data (worse TSS, to be expected):
-options(digits=3)
-eval.summary[[1]]$TSS             # 0.77 0.69 0.60 new ones worse
-s.eval.summary[[1]]$TSS[c(5,3,9)] # 0.78 0.69 0.62 old
-eval.summary[[2]]$TSS             # 0.78 0.70 0.62 new ones worse
-s.eval.summary[[2]]$TSS[c(5,3,9)] # 0.79 0.71 0.64 old. 
-eval.summary[[3]]$TSS             # 0.81 0.70 0.72 new ones worse
-s.eval.summary[[3]]$TSS[c(5,3,9)] # 0.81 0.71 0.73 old.
-eval.summary[[4]]$TSS             # 0.840 0.786 0.811 new ones worse
-s.eval.summary[[4]]$TSS[c(5,3,9)] # 0.854 0.791 0.832 old
-eval.summary[[5]]$TSS             # 0.799 0.733 0.759 new ones worse
-s.eval.summary[[5]]$TSS[c(5,3,9)] # 0.799 0.742 0.761 old. 
-eval.summary[[6]]$TSS             # 0.828 0.791 0.797 new ones better
-s.eval.summary[[6]]$TSS[c(5,3,9)] # 0.818 0.770 0.794 old.
-
-# Schreiberi: comparing before and after including KKL LU impacts survey data:
-options(digits=3)
-eval.summary[[1]]$TSS             # 0.776 0.678 0.626 new ones partly better
-s.eval.summary[[1]]$TSS           # 0.772 0.686 0.601 old
-s.eval.summary[[1]]$TSS[c(5,3,9)] # 0.78  0.69  0.62 prior to reducing study area size and absence data (best)
-
-eval.summary[[2]]$TSS             # 0.784 0.701 0.648 new ones better
-s.eval.summary[[2]]$TSS           # 0.782 0.700 0.624 old. 
-s.eval.summary[[2]]$TSS[c(5,3,9)] # 0.79  0.71  0.64 prior to reducing study area size and absence data (best)
-
-eval.summary[[3]]$TSS             # 0.807 0.688 0.728 new ones better
-s.eval.summary[[3]]$TSS           # 0.806 0.700 0.721 old.
-s.eval.summary[[3]]$TSS[c(5,3,9)] # 0.81  0.71  0.73 prior to reducing study area size and absence data (best)
-
-eval.summary[[4]]$TSS             # 0.832 0.744 0.789 new ones worse
-s.eval.summary[[4]]$TSS           # 0.840 0.786 0.811 old
-s.eval.summary[[4]]$TSS[c(5,3,9)] # 0.854 0.791 0.832 prior to reducing study area size and absence data (best by far)
-
-eval.summary[[5]]$TSS             # 0.820 0.773 0.797 new ones better
-s.eval.summary[[5]]$TSS           # 0.799 0.733 0.759 old. 
-s.eval.summary[[5]]$TSS[c(5,3,9)] # 0.799 0.742 0.761 prior to reducing study area size and absence data (worse)
-
-eval.summary[[6]]$TSS             # 0.821 0.758 0.780 new ones worse
-s.eval.summary[[6]]$TSS           # 0.828 0.791 0.797 old (best)
-s.eval.summary[[6]]$TSS[c(5,3,9)] # 0.818 0.770 0.794 prior to reducing study area size and absence data (mixed better/worse)
-
 
 # saving the outputs from the 5-fold, 100-replicate run evaluation
-saveRDS(eval.list,       "./rds_objects/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
-saveRDS(eval.summary,    "./rds_objects/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
-saveRDS(eval.summary.df, "./rds_objects/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
-write.xlsx(eval.summary,    "./output_data/s.model evaluation summary(topmethods).xlsx") # export to excel sprdsheet
-write.xlsx(eval.summary.df, "./output_data/s.model evaluation summary onetable(topmethods).xlsx")
+saveRDS(eval.list,       "./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
+saveRDS(eval.summary,    "./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
+saveRDS(eval.summary.df, "./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
+write.xlsx(eval.summary,    "./data/model evaluation summary.xlsx") # export to excel sprdsheet
+write.xlsx(eval.summary.df, "./data/model evaluation summary onetable.xlsx")
 
 # Plot relationship between TSS and AUC
 AUC_ordered = ordered(eval.summary.df$AUC)
 TSS_lower = eval.summary.df$TSS - eval.summary.df$TSS_sd
 TSS_upper = eval.summary.df$TSS + eval.summary.df$TSS_sd
 
-r = ggplot(eval.summary.df, aes(x=AUC, y=TSS, color = data_combo)) + geom_point() 
+r = ggplot(eval.summary.df, aes(x=AUC, y=TSS, color = scenario)) + geom_point() 
 r
-cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.98377 for B. 0.9615/0.958 for Shfela.
-
-# can't get the smooth line/ribbon aspects to work; leaving it for now.
-# + geom_ribbon(aes(x= eval.summary.df$AUC, ymin = TSS_lower, ymax = TSS_upper))
-#  aes(x=time, ymin=p.shreiberi.lower, ymax=p.shreiberi.upper), alpha=0.2)
-# geom_ribbon(aes(x=time, ymin=p.shreiberi.lower, ymax=p.shreiberi.upper), alpha=0.2) +
-#  scale_fill_manual(values = c("Min. temp"="blue", "Mean temp"="green", "Max. temp"="red"),guide=FALSE) +
-#  theme_bw() +
-#  theme(legend.position=c(0.465,0.775), legend.text = element_text(size=7)) + 
-#  labs(x="Time of day (hours)", y=expression(italic("A. s")~"observations 10,000 m"^-2~hr^-1))
+cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.9801016
 
 ########################################################################################################
 # Definining 'top' algorithims for future focus ----
 # I'm going to use TSS to define the topmodels - we have already seen that this is highly correlated with AUC.
 # To my knowledge; can't extract top models but can specify which ones to use when drawing ROC curves and running ensembles.
 
-# Approach 1: select top algorithms by frequency in top 5 list (by TSS) for each dataset combination ----
+# Approach 1: select top algorithms by frequency in top 5 list (by TSS) for each scenario ----
 
-# Extract and order top 5 models from each dataset combination:
+# Extract and order top 5 models from each scenario:
 top5 = list()
 for (i in 1:length(eval.summary))                   {
 top5[[i]] = eval.summary[[i]][rank(eval.summary[[i]]$TSS)>=5,]
@@ -417,12 +286,11 @@ for (i in 1:length(methods))                                                    
                                     points = length(which(top5_df$method == methods[[i]])))  }
 methods.points.df = do.call("rbind", methods.points)
 (methods.points.df = methods.points.df[order(-methods.points.df$points),] )
-# gam, brt, rf, and svm all performed equally well, all appearing in all of the top 5s for each data combination.
+# gam, brt, rf, and svm all performed equally well, all appearing in all of the top 5s for each scenario.
 
 # Approach 2: selecting by average TSS and AUC values (the one I'm using) ----
-methods.summary = aggregate(eval.summary.df[, c("TSS", "AUC")],
-                  eval.summary.df["method"],
-                  function(x) c(mean=mean(x), sd=sd(x)) )
+methods.summary = aggregate(model.inf.ev[, c("TSS", "AUC")], # improved from shnunit version, aggregates original list
+                            model.inf.ev["method"], function(x) c(mean=mean(x), sd=sd(x)) )
 methods.summary$TSS.sd = methods.summary$TSS[,2]
 methods.summary$AUC.sd = methods.summary$AUC[,2]
 methods.summary$TSS.mean = methods.summary$TSS[,1]
@@ -434,10 +302,10 @@ methods.summary = methods.summary[,c(1,4,2,5,3)] # getting them back in a nice o
 (methods.summary = methods.summary[order(-methods.summary$TSS.mean),])
 rownames(methods.summary) <- 1:nrow(methods.summary)
 methods.summary
-write.xlsx(methods.summary,"./output_data/s.methods.summary.xlsx") # export to excel sprdsheet
+write.xlsx(methods.summary,"./data/methods.summary.xlsx") # export to excel sprdsheet
 
 # plot TSS by method:
-methods.summary$method = factor(methods.summary$method, levels = methods.summary$method[order(-methods.summary$TSS.mean)])
+methods.summary$method = factor(methods.summary$method, levels=methods.summary$method[order(-methods.summary$TSS.mean)])
 
 # plot with error bars:
 palette(c("red","magenta","blue","cyan","green3","brown","gray","purple","yellow")) # adding&changing colour palette (default has 8 only)
@@ -445,37 +313,47 @@ algorithm = 1:9
 lower.end = methods.summary$TSS.mean - methods.summary$TSS.sd
 upper.end = methods.summary$TSS.mean + methods.summary$TSS.sd
 
-png(filename = paste0(heavies.image.path,"S.evalmodels.TSS.withbars.png"), width=20, height=15, units='cm', res=600)
-par(mgp=c(2,0.5,0),mar=c(3.5,3.5,4,2)+0.1)
+png(filename = paste0(B.heavies.image.path,"Comparing algorithm performance by TSS.withbars.png"), 
+    width=14, height=8, units='cm', res=300)
+par(mgp=c(2,0.5,0),mar=c(3,3,0,0)+0.1)
 plot(methods.summary$TSS[,1], bg=methods.summary$method, pch=21, cex=1.5, 
-     ylim=range(c(lower.end,upper.end)),xlim=c(0,10), xlab="Algorithm",xaxt='n',ylab="Average TSS")
-with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary),labels=methods.summary$method,pos=2,cex=1))
-#legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), pt.bg=c(1:9), pch=21, cex=1.5,text.font=1)
+     ylim=range(c(lower.end,upper.end)),xlim=c(1,9.5), xlab="Algorithm",xaxt='n',ylab="Average TSS")
+with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary),
+                           labels=methods.summary$method, pos=4, cex=0.9, offset=0.35))
+#legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), pt.bg=c(1:9),pch=21,cex=1.5,text.font=1)
 arrows(algorithm, lower.end, algorithm,   upper.end,  length=0.05, angle=90, code=3)
-points(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5) # just putting points on top of lines
+points(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.4) # just putting points on top of lines
 dev.off()
 
 # plot without error bars:
-png(filename = paste0(heavies.image.path,"S.evalmodels.TSS.nobars.png"), width=20, height=15, units='cm', res=600)
-par(mgp=c(2,0.5,0),mar=c(3.5,3.5,4,2)+0.1)
-plot(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5, xlab="Algorithm",xaxt='n',ylab="Average TSS")
-with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary), labels = methods.summary$method, pos = 4, cex=1))
-# legend("topright", c("rf","svm","gam","brt","mda","cart","rpart","glm","fda"), pt.bg=c(1:9), pch=21,cex=1.5,text.font=1)
+png(filename = paste0(B.heavies.image.path,"Comparing algorithm performance by TSS.nobars.png"), 
+    width=14, height=8, units='cm', res=300)
+par(mgp=c(2,0.5,0),mar=c(3,3,0,0))
+plot(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5, xlab="Algorithm",xaxt='n',ylab="Average TSS",
+     ylim=c(0.44,0.66), xlim=c(1,9.5))
+with(methods.summary, text(methods.summary$TSS.mean ~ rownames(methods.summary), 
+                           labels = methods.summary$method, pos = 4, cex=1))
+# legend("topright",c("rf","svm","gam","brt","mda","cart","rpart","glm","fda"),pt.bg=c(1:9), pch=21,cex=1.5,text.font=1)
 # arrows(algorithm, lower.end, algorithm,   upper.end,  length=0.05, angle=90, code=3)
 # points(methods.summary$TSS[,1], bg=methods.summary$method, pch=21, cex=1.5) # just putting points on top of lines
 dev.off()
 
-# Plot TSS by SD for all models (summarised by combo-alg combination)
-png(filename = paste0(heavies.image.path,"S.evalmodels.TSS-SDs.png"), width=20, height=15, units='cm', res=600)
-plot(eval.summary.df$TSS, eval.summary.df$TSS_sd, pch=21, bg=eval.summary.df$method, 
-     xlab="TSS", ylab="TSS standard deviation")
-points(eval.summary.df$TSS[eval.summary.df$method == "rf"], eval.summary.df$TSS_sd[eval.summary.df$method == "rf"],
-       pch=21, bg= "green3", cex=1.2)
-points(eval.summary.df$TSS[eval.summary.df$method == "svm"], eval.summary.df$TSS_sd[eval.summary.df$method == "svm"],
-       pch=21, bg= "yellow", cex=1.2)
-points(eval.summary.df$TSS[eval.summary.df$method == "gam"], eval.summary.df$TSS_sd[eval.summary.df$method == "gam"],
-       pch=21, bg= "blue", cex=1.2)
-legend("bottomleft", c("cart","fda","gam","brt","rf","glm","mda","rpart","svm"), pt.bg=c(1:9), pch=21, cex=1.1)
+# Plot TSS by SD for all models (summarised by scenario-alg combination)
+png(filename = paste0(B.heavies.image.path,"Variability of algorithm performance.png"), 
+    width=20, height=12, units='cm', res=600)
+plot(methods.summary$TSS.mean, methods.summary$TSS.sd, pch=21, bg=methods.summary$method, 
+     xlab="Algorithm average performance (mean TSS)", ylab="Performance variability (TSS standard deviation)", xlim=c(0.46,0.655))
+points(methods.summary$TSS.mean[methods.summary$method == "rf"], methods.summary$TSS.sd[methods.summary$method == "rf"],
+       pch=21, bg= "green3", cex=1.5)
+points(methods.summary$TSS.mean[methods.summary$method == "svm"], 
+       methods.summary$TSS.sd[methods.summary$method == "svm"],  pch=21, bg= "yellow", cex=1.5)
+points(methods.summary$TSS.mean[methods.summary$method == "gam"], 
+       methods.summary$TSS.sd[methods.summary$method == "gam"],  pch=21, bg= "blue", cex=1.5)
+points(methods.summary$TSS.mean[methods.summary$method == "brt"], 
+       methods.summary$TSS.sd[methods.summary$method == "brt"],  pch=21, bg= 4, cex=1.5)
+with(methods.summary, text(methods.summary$TSS.sd ~ methods.summary$TSS.mean, 
+                           labels = methods.summary$method, pos = 4, cex=1))
+# legend("bottomleft", c("cart","fda","gam","brt","rf","glm","mda","rpart","svm"), pt.bg=c(1:9), pch=21, cex=1.1)
 dev.off()
 # Performance of the top 3 methods is as consistent as any other methods. The SD of TSS for RF models in particularly low.
 
@@ -501,14 +379,6 @@ print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_meth
 # When TSS threshold is 0.5 and AUC threshold is 0.7, in some cases AUC is more generous (considers more models to be 'top'), in some cases the two indicators indicate the same set of 'top' methods.
 # if AUC threshold is increased to 0.7811, then the methods considered 'top' by both methods are almost identical (once I remove glmnet).
 
-# what's going on with model combination 3?
-# I went through and double-checked the input data to ensure that there are no mistakes. 
-b_data_packages[[3]]
-#sdm(occurrence ~ ., data = b_data_packages[[3]], methods =c("cart",'fda','gam','brt','rf','glm', 'mda','rpart','svm'), n=11, replication = 'cv', cv.folds=5)
-eval.summary[[3]] # it's just a very low performer. Interesting; because it's essentially just all the survey data.
-TSS_topmods_methods[[3]]  = paste(subset(eval.summary[[3]], TSS > 0.25)$method)
-(AUC_topmods_methods[[3]] = paste(subset(eval.summary[[3]], AUC > 0.5555)$method))
-
 # to plot ROC curves of topmodels:
 roc(model.list.cv.100n[[i]][1], method = TSS_topmods_methods[[i]], smooth = T, cex.lab = 0.7, cex.main = 0.8, pin= c(5.5, 5.3))
 
@@ -517,6 +387,7 @@ write.xlsx(methods.summary, "./output_data/model evaluation summary (aggregated 
 # top models are rf, SVM, and gam
 
 ########################################################################################################
+# the code below here is legacy...
 # ROC curves for all models ----
 b_package_names # exisitng list of packages
 par("oma") # outer margin margins - can leave these at zero.
@@ -539,7 +410,7 @@ for (i in 1:length(b_package_names)) {
   sdm.tops = function(data) {sdm(occurrence ~ ., data = data, methods = c('gam','rf','svm'), 
       n=100, replication = 'cv', cv.folds=5) }
 
-# create models for each combo 
+# create models for each scenario 
 model.list.cv.tops = list()
 
 for (i in 1:length(s.6scen.scen.names))                                                                        {
@@ -559,13 +430,13 @@ modelset = model.list.cv.tops # to prevent multiple repetitions of exact model s
 # step 2a: run the first combo (top row) separately, to give it titles:
 i = 1
 start_time = Sys.time()
-combo.letter = list ("A","B","C","D","E","F","G","H","I")
+scenario.letter = list ("A","B","C","D","E","F","G","H","I")
 
   filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - RF.png')
   png(filename = filename, width = 9.975, height = 5.7, units = "cm", res = 300)
   par(mar = c(0,2,1.5,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
   roc(modelset[[i]], method = "rf",  smooth = T, cex.axis = 0.9, tck=-0.03, cex.main = 1.4, main= "Random forests")
-  text(x = 0.03, y = 0.94, labels = combo.letter[[i]],cex = 1.3, xpd = NA)
+  text(x = 0.03, y = 0.94, labels = scenario.letter[[i]],cex = 1.3, xpd = NA)
   dev.off()
   
   filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - SVM.png')
@@ -590,7 +461,7 @@ for (i in 2:(length(s.6scen.scen.names)-1))                                     
   png(filename = filename, width = 9.975, height = 5.225, units = "cm", res = 300)
   par(mar = c(0,2,0,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
   roc(modelset[[i]],method = "rf",  smooth = T, cex.axis = 0.9, tck=-0.02, main = NULL)
-  text(x = 0.03, y = 0.94, labels = combo.letter[[i]],cex = 1.3, xpd = NA)
+  text(x = 0.03, y = 0.94, labels = scenario.letter[[i]],cex = 1.3, xpd = NA)
   dev.off() 
   
   filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - SVM.png')
@@ -615,7 +486,7 @@ start_time = Sys.time()
   png(filename = filename, width = 9.975, height = 6.65, units = "cm", res = 300)
   par(mar = c(3,2,0,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
   roc(modelset[[i]],method = "rf",  smooth = T, cex.axis = 0.9, tck=-0.02, main= NULL)
-  text(x = 0.02, y = 0.95, labels = combo.letter[[i]],cex = 1.3, xpd = NA)
+  text(x = 0.02, y = 0.95, labels = scenario.letter[[i]],cex = 1.3, xpd = NA)
   dev.off()
   
   filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - SVM.png')
@@ -634,56 +505,56 @@ start_time = Sys.time()
 
 # step 3: combine plots (for want of a better way to do this!) ----
 
-# ROC - All combinations - top models plot for Beershebensis:
+# ROC - All scenarios - top models plot for Beershebensis:
 {
-png(filename = paste0(heavies.image.path,"B.ROC - All combinations - top models.png"), 
+png(filename = paste0(heavies.image.path,"B.ROC - All scenarios - top models.png"), 
                       width=26, height=40, units="cm", res=600)
 par(mar = c(1,1,0,0), mgp=c(0,0,0)) 
 # mgp sets distance between (1) axis titles and axes and (2) axis labels and the axes. Default is mgp = c(3, 0.1, 0).
 plot(0:9, 0:9, type = "n", xaxt = "n", yaxt = "n", 
      xlab = "1 - Specificity (false positive rate)", ylab = "Sensitivity (true positive rate)", bty="n")
 
-i=1 # combination A # numbers at end: xstart, ystart, xend, yend
+i=1 # scenario A # numbers at end: xstart, ystart, xend, yend
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 7.8, 3, 9) 
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 7.8, 6, 9)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 7.8, 9, 9)
 
-i=2 # combination B
+i=2 # scenario B
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 6.8, 3, 7.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 6.8, 6, 7.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 6.8, 9, 7.8)
 
-1=3 # combination C
+1=3 # scenario C
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 5.8, 3, 6.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 5.8, 6, 6.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 5.8, 9, 6.8)
 
-1=4 # combination D
+1=4 # scenario D
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 4.8, 3, 5.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 4.8, 6, 5.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 4.8, 9, 5.8)
 
-i=5 # combination E
+i=5 # scenario E
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 3.8, 3, 4.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 3.8, 6, 4.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 3.8, 9, 4.8)
 
-i=6 # combination F
+i=6 # scenario F
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 2.8, 3, 3.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 2.8, 6, 3.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 2.8, 9, 3.8)
 
-i=7 # combination G
+i=7 # scenario G
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 1.8, 3, 2.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 1.8, 6, 2.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 1.8, 9, 2.8)
 
-i=8 #combination H
+i=8 # scenario H
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 0.8, 3, 1.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 0.8, 6, 1.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 0.8, 9, 1.8)
 
-i=9 # combination I
+i=9 # scenario I
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, -.4, 3, 0.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, -.4, 6, 0.8)
 rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, -.4, 9, 0.8)
@@ -691,47 +562,6 @@ rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i
 dev.off()
 }
 
-# ROC - All combinations - top models plot for Schreiberi:
-{
-png(filename = paste0(heavies.image.path,"S.ROC - All combinations - top models.png"), 
-                      width=26, height=27, units="cm", res=600)
-par(mar = c(1,1,0,0), mgp=c(0,0,0)) 
-# mgp sets distance between (1) axis titles and axes and (2) axis labels and the axes. Default is mgp = c(3, 0.1, 0).
-plot(0:6, 0:6, type = "n", xaxt = "n", yaxt = "n", xlab = "1 - Specificity (false positive rate)", 
-     ylab = "Sensitivity (true positive rate)", bty="n")
-
-i=1 # combination A              # numbers at end: xstart, ybottom, xend, ytop
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - RF.png")),  -.2,   5, 2, 6.2) 
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - SVM.png")),   2,   5, 4, 6.2)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - GAM.png")),   4,   5, 6, 6.2)
-
-i=2 # combination B
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - RF.png")),  -.2,   4, 2, 5)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - SVM.png")),   2,   4, 4, 5)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - GAM.png")),   4,   4, 6, 5)
-
-i=3 # combination C
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - RF.png")),  -.2,   3, 2, 4)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - SVM.png")),   2,   3, 4, 4)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - GAM.png")),   4,   3, 6, 4)
-
-i=4 # combination D
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - RF.png")),  -.2,   2, 2, 3)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - SVM.png")),   2,   2, 4, 3)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - GAM.png")),   4,   2, 6, 3)
-
-i=5 # combination E
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - RF.png")),  -.2,   1, 2, 2)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - SVM.png")),   2,   1, 4, 2)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - GAM.png")),   4,   1, 6, 2)
-
-i=6 # combination F
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - RF.png")),  -.2, -.3, 2, 1)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - SVM.png")),   2, -.3, 4, 1)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",s.6scen.scen.names[[i]]," - GAM.png")),   4, -.3, 6, 1)
-
-dev.off()
-}
   
 # can extract ROC values to plot mannually, but a bit time consuming!
 # ROC = list() 

@@ -476,7 +476,7 @@ for (i in 1:length(raster.list))                                            {
 # Stack, make images, and save raster objects ----
 preds = stack(raster.list); plot(preds)
 # saveRDS(preds, paste0(B.heavies.rds.path,"preds.rds"))
-b.preds = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # retrieve raster stack. Slow.
+preds = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # retrieve raster stack. Slow.
 
 # make bricks but don't bother saving or retreiving them; brick RDSs don't save the content
 brick = brick(raster.list)

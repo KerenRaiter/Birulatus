@@ -66,8 +66,15 @@ B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +towgs84=-24.002400,-17.103200,-17.844400,-0.33077,-1.85269,1.66969,5.4248 +units=m +no_defs")
 
 #######################################################################################################################
-# Datasets I prepared earlier in this script ----
+# Datasets prepared earlier ----
+# from this script:
 
+package_names          = readRDS("rds/package_names.rds")
+combo.descriptions     = readRDS("rds/combo.descriptions.rds")
+obs_packages           = readRDS("rds/obs_packages.rds")
+data_packages          = readRDS("rds/data_packages.rds")
+
+# from previous scripts:
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
@@ -93,23 +100,21 @@ bi     = readRDS("./rds/bi.rds")
 bip    = readRDS("./rds/bip.rds")
 bia    = readRDS("./rds/bia.rds")
 
-
-
 # legacy :
-b_package_names         = readRDS("./rds_objects/b_package_names.rds")
-b.combo.descriptions    = readRDS("./rds_objects/b.combo.descriptions.rds")
-obs_packages            = readRDS("./rds_objects/obs_packages.rds")
-b_data_packages         = readRDS("./rds_objects/b_data_packages.rds")
-
-ssp  = readRDS ("./rds_objects/ssp.rds")
-ssa  = readRDS ("./rds_objects/ssa.rds")
-sc   = readRDS ("./rds_objects/sc.rds")
-sc.r = readRDS ("./rds_objects/sc.r.rds")
-
-s.6scen.scen.names             = readRDS("./rds_objects/s.6scen.scen.names.rds")
-s.6scenario.descriptions       = readRDS("./rds_objects/s.6scenario.descriptions.rds")
-s.6scen.obs.packages           = readRDS("./rds_objects/s.6scen.obs.packages.rds")
-s.6scen.data.packages          = readRDS("./rds_objects/s.6scen.data.packages.rds")
+# b_package_names         = readRDS("./rds_objects/b_package_names.rds")
+# b.combo.descriptions    = readRDS("./rds_objects/b.combo.descriptions.rds")
+# obs_packages            = readRDS("./rds_objects/obs_packages.rds")
+# b_data_packages         = readRDS("./rds_objects/b_data_packages.rds")
+# 
+# ssp  = readRDS ("./rds_objects/ssp.rds")
+# ssa  = readRDS ("./rds_objects/ssa.rds")
+# sc   = readRDS ("./rds_objects/sc.rds")
+# sc.r = readRDS ("./rds_objects/sc.r.rds")
+# 
+# s.6scen.scen.names             = readRDS("./rds_objects/s.6scen.scen.names.rds")
+# s.6scenario.descriptions       = readRDS("./rds_objects/s.6scenario.descriptions.rds")
+# s.6scen.obs.packages           = readRDS("./rds_objects/s.6scen.obs.packages.rds")
+# s.6scen.data.packages          = readRDS("./rds_objects/s.6scen.data.packages.rds")
 
 #########################################################################################################
 # Prepare observational data for input into data packages ----
@@ -154,11 +159,11 @@ for (p in 1:length(points.list)) {
 bip   = points.list[[1]]
 bia   = points.list[[2]]
 
-saveRDS(bip,         "./rds_objects/bip.rds")
-saveRDS(bsa,         "./rds_objects/bsa.rds")
+saveRDS(bip,         "./rds/bip.rds")
+saveRDS(bsa,         "./rds/bsa.rds")
 
 #########################################################################################################
-# Create data packages for each combo: Beershebensis -----
+# Create data packages for each combo -----
 
 # Data combination descriptions
 combo.descriptions = list("A: All data equal")
@@ -177,90 +182,20 @@ obs_packages  = list(obs_A)
                      #obs_B, obs_C, obs_D, obs_E, obs_F, obs_G, obs_H, obs_I)
 package_names = list('Combination A')
 data_packages = list()
-unique(obs_A)
+remove.duplicates(obs_A) # no duplicates
 
 for (d in 1:length(package_names)) {
-  data_packages[[d]] = sdmData(formula = occurrence ~ ., train = obs_packages[[d]], predictors = preds)
+  data_packages[[d]] = sdmData(formula = occurrence ~ ., train = obs_packages[[d]], predictors = preds.nocoll)
   print("------------"); print(package_names[[d]]); print(data_packages[[d]])   
   print(length(obs_packages[[d]]))   } # 181 observations (none dropped from obs package number, )
 
-
-
-# # A note on the difference in data numbers between input datasets, and data packages:
-{
-# length(obs_packages[[1]])     # 286 observations
-# b_data_packages[[1]]          # 278 observations
-# # Convert dataset to tibble and use tidyverse to remove duplictes:
-# obs_A_tibble <- as_tibble(obs_packages[[1]])
-# obs_A_tibble.unique = obs_A_tibble %>% distinct(coords.x1, coords.x2, .keep_all = TRUE)
-# obs_A_tibble.unique # yes this comes up with 279 unique observations! Nice to know that sdm package removes location duplicates automatically.
-}
+# A note on the difference in feature numbers: the data_packages function automatically removes spatial duplictes. 
+# to see how many duplicate-free points there are in original data set, use remove.duplicates() as above)
 
 # main output objects from this section:
-saveRDS(b_package_names,      "./rds_objects/b_package_names.rds")
-saveRDS(b.combo.descriptions, "./rds_objects/b.combo.descriptions.rds")
-saveRDS(obs_packages,         "./rds_objects/obs_packages.rds")
-saveRDS(b_data_packages,      "./rds_objects/b_data_packages.rds")
-
-b_data_packages = readRDS("./rds_objects/b_data_packages.rds")
-
+saveRDS(package_names,      "./rds/package_names.rds")
+saveRDS(combo.descriptions, "./rds/combo.descriptions.rds")
+saveRDS(obs_packages,       "./rds/obs_packages.rds")
+saveRDS(data_packages,      "./rds/data_packages.rds")
 
 #########################################################################################################
-# Create data packages for each combo: Schreiberi -----
-
-# Data combination descriptions
-s.2scenario.descriptions = list("A: All data",
-                                 "B: Exclude unreliable collections data")
-
-s.4scenario.descriptions = list("A: All data (PA)",
-                                 "B: Exclude unreliable collections data (PA)",
-                                 "E: All the presences (PO)",
-                                 "F: All reliable presences only (PO)")
-
-s.6scenario.descriptions = list("A: All data (PA)",
-                                 "B: Exclude unreliable collections data (PA)",
-                                 "C: Surv. data; all included (PA)",
-                                 "D: Surv presences only (PO)",
-                                 "E: All the presences (PO)",
-                                 "F: All reliable presences only (PO)")
-
-obs_A = rbind(ssp, ssa, sc)
-obs_B = rbind(ssp, ssa, sc.r)
-obs_C = rbind(ssp, ssa) 
-obs_D = rbind(ssp)
-obs_E = rbind(ssp, sc)
-obs_F = rbind(ssp, sc.r)
-
-s.6scen.obs.packages    = list(obs_A, obs_B, obs_C, obs_D, obs_E, obs_F)
-s.6scen.scen.names = list('Schreiberi Scenario A','Schreiberi Scenario B','Schreiberi Scenario C',
-                          'Schreiberi Scenario D','Schreiberi Scenario E','Schreiberi Scenario F')
-
-s.6scen.data.packages = list()
-
-for (d in 1:length(s.6scen.scen.names)) {
-  s.6scen.data.packages[[d]] = sdmData(formula = occurrence ~ ., train = s.6scen.obs.packages[[d]], predictors=s.preds)
-  print("------------"); print(s.6scen.scen.names[[d]]); print(s.6scen.data.packages[[d]])   
-  print(length(s.6scen.obs.packages[[d]]))   } 
-  # 20 duplicate points in all: must be in ssp. Maybe not identical, but fall in the same cells. 
-
-# Now add background points to last three data packages that are PO. Manually to ensure obs not double-counted.
-bg.points = length(s.6scen.data.packages[[4]]@features$rID) 
-s.6scen.data.packages[[4]] = sdmData(formula = occurrence~., train = s.6scen.obs.packages[[4]], 
-                                     predictors = s.preds, bg = list(n = bg.points, method='gRandom', remove=TRUE))
-s.6scen.data.packages[[4]] # 1322 obs; presence-background
-
-bg.points = length(s.6scen.data.packages[[5]]@features$rID) 
-s.6scen.data.packages[[5]] = sdmData(formula = occurrence~., train = s.6scen.obs.packages[[5]], 
-                                     predictors = s.preds, bg = list(n = bg.points, method='gRandom', remove=TRUE))
-s.6scen.data.packages[[5]] # 1508 obs; presence-background
-
-bg.points = length(s.6scen.data.packages[[6]]@features$rID) 
-s.6scen.data.packages[[6]] = sdmData(formula = occurrence~., train = s.6scen.obs.packages[[6]], 
-                                     predictors = s.preds, bg = list(n = bg.points, method='gRandom', remove=TRUE))
-s.6scen.data.packages[[6]] # 1448 obs; presence-background
-
-# main output objects from this section:
-saveRDS(s.6scen.scen.names,       "./rds_objects/s.6scen.scen.names.rds")
-saveRDS(s.6scenario.descriptions, "./rds_objects/s.6scenario.descriptions.rds")
-saveRDS(s.6scen.obs.packages,     "./rds_objects/s.6scen.obs.packages.rds")
-saveRDS(s.6scen.data.packages,    "./rds_objects/s.6scen.data.packages.rds")

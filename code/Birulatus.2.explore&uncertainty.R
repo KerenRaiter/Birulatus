@@ -51,6 +51,10 @@ B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
 #######################################################################################################################
 # Load data created previously ----
+# from this script:
+preds.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack
+
+# from previous scripts:
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
@@ -81,13 +85,27 @@ plot(preds, main = raster.list.names)
 
 # Test for multicollinearity ----
 # Get variance inflation Factor and test for multicollinearity:
+names(preds) 
+lstats = layerStats(preds, 'pearson', na.rm=T)
+corr_matrix = lstats$'pearson correlation coefficient'
+
+png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus.png"),width=20,height=20,units='cm',res=600)
+pairs(preds, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
+dev.off()
+
 # Zuur: Some statisticians suggest that VIF values higher then 5 or 10 are too high. In ecology vif larger than 3 is considered too much
-vif(preds) # all ok now that i've removed the overlap of jantemps and DEM
+vif(preds) 
+raster.list.names
+# getting rid of elevation
+preds.nocoll = stack(preds[[1]],preds[[2]],preds[[5]],preds[[6]],preds[[7]])
+vif(preds.nocoll)
 
-vifcor(preds, th=0.9) # no collinearity problem (I already excluded collinear variables previously)
+vifcor(preds.nocoll, th=0.9) # no collinearity problem (I already excluded collinear variables previously)
+# there's another function called corvif(), takes in only numerical variables. for reference.
 
-#vifstep(preds, th=10, ...) # identify collinear variables that should be excluded. doesn't work
-#vifstep(bs.brick, th=10, ...)
+vifstep(preds, th=10) # identify collinear variables that should be excluded. doesn't work
+
+saveRDS(preds.nocoll,        paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack
 
 #####
 # Legacy from here down...Create Beershebensis subsets of reliable and questionable survey absence data ----
