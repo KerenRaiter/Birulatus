@@ -546,6 +546,10 @@ values(r) <- sample(x = 1:10,size = ncell(r),replace = T)
 writeRaster(r,'test.tif',options=c('TFW=YES'))
 
 #####
+# convert strings fro, upper case to lower case and vice versa ----
+toupper("rd")
+tolower("RF")
+#####
 # Send an email (e.g. when a process has finished) ----
 library(mailR)
 send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
@@ -747,4 +751,62 @@ legend("bottomleft",
 dev.off()
 
 ##### 
+# Create a KML for veiwing spatial data in Google maps or similar ----
+
+# from https://stackoverflow.com/questions/7813141/how-to-create-a-kml-file-using-r
+
+# Check the writeOGR function in the rgdal package. Here is a simple example:
+library("sp")
+library("rgdal")
+data(meuse)
+coordinates(meuse) <- c("x", "y")
+proj4string(meuse) <- CRS("+init=epsg:28992")
+meuse_ll <- spTransform(meuse, CRS("+proj=longlat +datum=WGS84"))
+writeOGR(meuse_ll["zinc"], "meuse.kml", layer="zinc", driver="KML") 
+
+# I think is worth mentioning the plotKML package as well.
+
+# However, for easy sharing among colleagues I found interesting the mapview package based on leaflet package. One can save a map as HTML document with various options for a background map; no need of Google Earth and the HTML map will run on your browser.
+
+# Some examples:
+  
+library(sp)
+library(rgdal)
+library(raster)
+library(plotKML)
+library(mapview)
+
+# A SpatialPointsDataFrame example
+data(meuse)
+coordinates(meuse) <- ~x+y
+proj4string(meuse) <- CRS("+init=epsg:28992") # CRS Amersfoort (Netherlands)
+# make a KML file from SpatialPointsDataFrame object
+# will get a warning like "Reprojecting to +proj=longlat +datum=WGS84 ..."
+# as it is expected to work with geographical coordinates with datum=WGS84, 
+# but seems that it takes care of the reprojecting. 
+plotKML::kml(meuse,
+             file.name    = "meuse_cadium.kml",
+             points_names = meuse$cadmium,
+             colour    = "#FF0000",
+             alpha     = 0.6,
+             size      = 1,
+             shape     = "http://maps.google.com/mapfiles/kml/pal2/icon18.png")
+# Or, an easy to make interactive map with mapView()
+mapView(meuse)
+
+# A RasterLayer example   
+data(meuse.grid)
+gridded(meuse.grid) <- ~x+y
+proj4string(meuse.grid) <- CRS("+init=epsg:28992")
+dist_rst <- raster(meuse.grid["dist"])
+# make a KML file from RasterLayer object
+plotKML::kml(dist_rst,
+             file.name    = "dist_rst.kml",
+             colour_scale = SAGA_pal[[1]])
+# Or, easy to make interactive map with mapView() - display raster and add the points
+mapView(dist_rst, legend=TRUE) + meuse
+# However, note that for bigger raster datasets mapView() might reduce from resolution
+
+# links to tutorials and examples provided on page
+####
 # ----

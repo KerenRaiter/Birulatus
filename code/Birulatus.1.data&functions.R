@@ -221,28 +221,28 @@ plot(kkl.forestry, add = T, col="brown",border="brown")
 # saveRDS(firing_excl_alllanduse,      paste0(heavies.rds.path,"firing_excl_alllanduse.rds"))
 
 
-# landuse.simple       = rmapshaper::ms_simplify(landuse.unsimplified, keep = 0.2, keep_shapes = TRUE)
-kkl.forestry_simple  = ms_simplify(kkl.forestry, keep = 0.3, keep_shapes = TRUE)
-
-plot(kkl.forestry)
-plot(kkl.forestry_simple, col="yellow", add=T)
-plot(kkl.forestry); plot(kkl.plans, col="red", border="red", add=T)
-
-summary(landuse.unsimplified@data$landuse); par(mar=c(0,0,0,0))
-landuse = landuse.unsimplified
-png(filename = "./output_images/landuse_b.png", width = 12, height = 15, units = 'cm', res = 900)
-par(mar=c(0,0,0,0))
-plot(landuse[landuse@data$landuse == "built-up area",], col="darkgrey",border="darkgrey",lwd=0.25, xlim=xlims_b,ylim=ylims_b)
-plot(landuse_b[landuse_b@data$landuse == "conservation",],  col="lightgreen",     border=NA, add=T)
-plot(landuse_b[landuse_b@data$landuse == "military",],      col="lightslateblue", border=NA, add=T)
-plot(landuse_b[landuse_b@data$landuse == "forestry",],      col="darkgreen",      border=NA, add=T)
-plot(landuse_b[landuse_b@data$landuse == "agriculture",],   col="chocolate",      border=NA, add=T)
-plot(major.cities, pch=21, bg='yellow', cex=1, add=TRUE)
-with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.5, font=2, offset=0.3))
-legend("bottomright", c("Agriculture","Built-up area","Military","Forestry","Conservation"), pch=22, pt.cex=1.5, 
-        col=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"),
-        pt.bg=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"))
-dev.off()
+# # landuse.simple       = rmapshaper::ms_simplify(landuse.unsimplified, keep = 0.2, keep_shapes = TRUE)
+# kkl.forestry_simple  = ms_simplify(kkl.forestry, keep = 0.3, keep_shapes = TRUE)
+# 
+# plot(kkl.forestry)
+# plot(kkl.forestry_simple, col="yellow", add=T)
+# plot(kkl.forestry); plot(kkl.plans, col="red", border="red", add=T)
+# 
+# summary(landuse.unsimplified@data$landuse); par(mar=c(0,0,0,0))
+# landuse = landuse.unsimplified
+# png(filename = "./output_images/landuse_b.png", width = 12, height = 15, units = 'cm', res = 900)
+# par(mar=c(0,0,0,0))
+# plot(landuse[landuse@data$landuse == "built-up area",], col="darkgrey",border="darkgrey",lwd=0.25, xlim=xlims_b,ylim=ylims_b)
+# plot(landuse_b[landuse_b@data$landuse == "conservation",],  col="lightgreen",     border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "military",],      col="lightslateblue", border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "forestry",],      col="darkgreen",      border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "agriculture",],   col="chocolate",      border=NA, add=T)
+# plot(major.cities, pch=21, bg='yellow', cex=1, add=TRUE)
+# with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.5, font=2, offset=0.3))
+# legend("bottomright", c("Agriculture","Built-up area","Military","Forestry","Conservation"), pch=22, pt.cex=1.5, 
+#         col=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"),
+#         pt.bg=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"))
+# dev.off()
 
 # simplifying dataset with rmshaper doesn't work, did in ArcGIS instead:
 # landuse_simple = rmapshaper::ms_simplify(landuse_b, keep = 0.2, keep_shapes = TRUE)

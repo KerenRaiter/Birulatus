@@ -79,7 +79,7 @@ methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by
 top.algorithms  = c('rf','brt','svm','gam')
 
 # from previous scripts:
-package_names          = readRDS("rds/package_names.rds")
+scenario.names          = readRDS("rds/scenario.names.rds")
 scenario.descriptions  = readRDS("rds/scenario.descriptions.rds")
 obs_packages           = readRDS("rds/obs_packages.rds")
 data_packages          = readRDS("rds/data_packages.rds")
@@ -192,24 +192,24 @@ model.list.cv.100n = list()
 
 for (i in 1:length(data_packages))                                                                        {
   start.time = Sys.time()
-  print(package_names[i])
+  print(scenario.names[i])
   data = data_packages[[i]]
   model.list.cv.100n[[i]] = sdm.cv(data)  
-  print(paste(package_names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
+  print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
 
 # saveRDS(model.list.cv.100n, "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
 emailme()
   
 # # see how they went:
-# b_package_names[[1]]; model.list.cv.100n[[1]]
-# b_package_names[[2]]; model.list.cv.100n[[2]]
-# b_package_names[[3]]; model.list.cv.100n[[3]]
-# b_package_names[[4]]; model.list.cv.100n[[4]]
-# b_package_names[[5]]; model.list.cv.100n[[5]]
-# b_package_names[[6]]; model.list.cv.100n[[6]]
-# b_package_names[[7]]; model.list.cv.100n[[7]]
-# b_package_names[[8]]; model.list.cv.100n[[8]]
-# b_package_names[[9]]; model.list.cv.100n[[9]]
+# scenario.names[[1]]; model.list.cv.100n[[1]]
+# scenario.names[[2]]; model.list.cv.100n[[2]]
+# scenario.names[[3]]; model.list.cv.100n[[3]]
+# scenario.names[[4]]; model.list.cv.100n[[4]]
+# scenario.names[[5]]; model.list.cv.100n[[5]]
+# scenario.names[[6]]; model.list.cv.100n[[6]]
+# scenario.names[[7]]; model.list.cv.100n[[7]]
+# scenario.names[[8]]; model.list.cv.100n[[8]]
+# scenario.names[[9]]; model.list.cv.100n[[9]]
 
 # save and/or retreive
 # saveRDS(model.list.cv.100n,  "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
@@ -233,7 +233,7 @@ for (i in 1:length(modelset))                                 {
   # then put them into list and aggregate them
   eval.list[[i]]   = model.inf.ev 
   eval.summary[[i]]= data.frame(method=aggregate(model.inf.ev$method, by=list(model.inf.ev$method),FUN=mode)[1],
-                                scenario = package_names[[i]],          # keep this line relevant!
+                                scenario = scenario.names[[i]],          # keep this line relevant!
                                 TSS     = aggregate(model.inf.ev$TSS,       by=list(model.inf.ev$method),  FUN=mean)[2],
                                 TSS_sd  = aggregate(model.inf.ev$TSS,       by=list(model.inf.ev$method),  FUN=sd)  [2],
                                 AUC     = aggregate(model.inf.ev$AUC,       by=list(model.inf.ev$method),  FUN=mean)[2],
@@ -392,18 +392,18 @@ write.xlsx(methods.summary, "./output_data/model evaluation summary (aggregated 
 ########################################################################################################
 # the code below here is legacy...
 # ROC curves for all models ----
-b_package_names # exisitng list of packages
+scenario.names # exisitng list of packages
 par("oma") # outer margin margins - can leave these at zero.
 par(mar=c(1,1,1,1))  # sets the bottom, left, top and right margins respectively. Units are 'lines of text'.
 methods = c("rf","svm","gam","brt","mda","cart","rpart","glm","fda")
 
-for (i in 1:length(b_package_names)) {
+for (i in 1:length(scenario.names)) {
  start.time = Sys.time()
- filename = paste0(heavies.image.path,b_package_names[[i]],' - ROC all methods.png')
+ filename = paste0(heavies.image.path,scenario.names[[i]],' - ROC all methods.png')
  png(filename = filename, width = 15, height = 16, units = "cm", res = 600)
  roc(model.list.cv.100n[[i]], method = methods, smooth = T, cex.lab = 0.8, cex.main = 0.8)
  dev.off() 
- print(paste(b_package_names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes")) }
+ print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes")) }
 
 # ROC curves for top 3 models ----
 # step 1: run just the top models (optional)  ----
@@ -518,49 +518,49 @@ plot(0:9, 0:9, type = "n", xaxt = "n", yaxt = "n",
      xlab = "1 - Specificity (false positive rate)", ylab = "Sensitivity (true positive rate)", bty="n")
 
 i=1 # scenario A # numbers at end: xstart, ystart, xend, yend
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 7.8, 3, 9) 
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 7.8, 6, 9)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 7.8, 9, 9)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 7.8, 3, 9) 
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 7.8, 6, 9)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 7.8, 9, 9)
 
 i=2 # scenario B
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 6.8, 3, 7.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 6.8, 6, 7.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 6.8, 9, 7.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 6.8, 3, 7.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 6.8, 6, 7.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 6.8, 9, 7.8)
 
 1=3 # scenario C
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 5.8, 3, 6.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 5.8, 6, 6.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 5.8, 9, 6.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 5.8, 3, 6.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 5.8, 6, 6.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 5.8, 9, 6.8)
 
 1=4 # scenario D
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 4.8, 3, 5.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 4.8, 6, 5.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 4.8, 9, 5.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 4.8, 3, 5.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 4.8, 6, 5.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 4.8, 9, 5.8)
 
 i=5 # scenario E
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 3.8, 3, 4.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 3.8, 6, 4.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 3.8, 9, 4.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 3.8, 3, 4.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 3.8, 6, 4.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 3.8, 9, 4.8)
 
 i=6 # scenario F
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 2.8, 3, 3.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 2.8, 6, 3.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 2.8, 9, 3.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 2.8, 3, 3.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 2.8, 6, 3.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 2.8, 9, 3.8)
 
 i=7 # scenario G
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 1.8, 3, 2.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 1.8, 6, 2.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 1.8, 9, 2.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 1.8, 3, 2.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 1.8, 6, 2.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 1.8, 9, 2.8)
 
 i=8 # scenario H
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, 0.8, 3, 1.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, 0.8, 6, 1.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, 0.8, 9, 1.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 0.8, 3, 1.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 0.8, 6, 1.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 0.8, 9, 1.8)
 
 i=9 # scenario I
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - RF.png")),  -.3, -.4, 3, 0.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - SVM.png")),   3, -.4, 6, 0.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",b_package_names[[i]], " - GAM.png")),   6, -.4, 9, 0.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, -.4, 3, 0.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, -.4, 6, 0.8)
+rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, -.4, 9, 0.8)
 
 dev.off()
 }

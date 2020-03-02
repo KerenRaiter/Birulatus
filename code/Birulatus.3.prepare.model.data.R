@@ -110,11 +110,6 @@ bia    = readRDS("./rds/bia.rds")
 # ssa  = readRDS ("./rds_objects/ssa.rds")
 # sc   = readRDS ("./rds_objects/sc.rds")
 # sc.r = readRDS ("./rds_objects/sc.r.rds")
-# 
-# s.6scen.scen.names             = readRDS("./rds_objects/s.6scen.scen.names.rds")
-# s.6scenario.descriptions       = readRDS("./rds_objects/s.6scenario.descriptions.rds")
-# s.6scen.obs.packages           = readRDS("./rds_objects/s.6scen.obs.packages.rds")
-# s.6scen.data.packages          = readRDS("./rds_objects/s.6scen.data.packages.rds")
 
 #########################################################################################################
 # Prepare observational data for input into data packages ----
@@ -180,22 +175,22 @@ obs_A = rbind(bip, bia)
 
 obs_packages  = list(obs_A)
                      #obs_B, obs_C, obs_D, obs_E, obs_F, obs_G, obs_H, obs_I)
-package_names = list('Combination A')
+scenario.names = list('All data equal scenario')
 data_packages = list()
 remove.duplicates(obs_A) # no duplicates
 
-for (d in 1:length(package_names)) {
+for (d in 1:length(scenario.names)) {
   data_packages[[d]] = sdmData(formula = occurrence ~ ., train = obs_packages[[d]], predictors = preds.nocoll)
-  print("------------"); print(package_names[[d]]); print(data_packages[[d]])   
+  print("------------"); print(scenario.names[[d]]); print(data_packages[[d]])   
   print(length(obs_packages[[d]]))   } # 181 observations (none dropped from obs package number, )
 
 # A note on the difference in feature numbers: the data_packages function automatically removes spatial duplictes. 
 # to see how many duplicate-free points there are in original data set, use remove.duplicates() as above)
 
 # main output objects from this section:
-saveRDS(package_names,      "./rds/package_names.rds")
-saveRDS(combo.descriptions, "./rds/combo.descriptions.rds")
-saveRDS(obs_packages,       "./rds/obs_packages.rds")
-saveRDS(data_packages,      "./rds/data_packages.rds")
+saveRDS(scenario.names,        "./rds/scenario.names.rds")
+saveRDS(scenario.descriptions, "./rds/scenario.descriptions.rds")
+saveRDS(obs_packages,          "./rds/obs_packages.rds")
+saveRDS(data_packages,         "./rds/data_packages.rds")
 
 #########################################################################################################
