@@ -808,5 +808,27 @@ mapView(dist_rst, legend=TRUE) + meuse
 # However, note that for bigger raster datasets mapView() might reduce from resolution
 
 # links to tutorials and examples provided on page
+
+# also try http://zevross.com/blog/2015/08/21/process-a-raster-for-use-in-a-google-map-using-r/
 ####
-# ----
+#####
+# Selecting specific models for an ensemble in sdm package ----
+
+# You can do that by specifying models IDs:
+ensemble(m, id=...)
+
+# Model IDs can be found with:
+ids <- getModelInfo(m)
+ids.rf <- ids[ids$method=="rf",]
+ids.rf$modelID
+
+# Alternatively, you can separate models from the original sdmModels object with:
+ids <- c(1,2,3,4) 
+m2 <- subset(m, ids)
+# or:
+m2 <- m[[1:4]]
+# and use it in the ensemble function
+ensemble(m2, ...)
+
+#####
+# 

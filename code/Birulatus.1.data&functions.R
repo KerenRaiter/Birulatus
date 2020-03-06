@@ -66,7 +66,8 @@ borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("r
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
 
-birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
+bir.area    = readRDS("rds/bir.area.rds") # study area
+bir.area.s  = readRDS("rds/bir.area.s.rds") # study area
 xlims = c(35.14081, 35.86214)
 ylims = c(31.59407, 33.00496)
 
@@ -78,14 +79,16 @@ villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
 
-raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
-raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
+raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
+preds.s             = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack
 
 bi.raw = readRDS("./rds/bi.raw.rds") 
-bi     = readRDS("./rds/bi.rds") 
-bip    = readRDS("./rds/bip.rds")
-bia    = readRDS("./rds/bia.rds")
+bi     = readRDS("./rds/bi.rds") ;    bi.s  = readRDS("./rds/bi.s.rds") 
+bip    = readRDS("./rds/bip.rds");    bip.s    = readRDS("./rds/bip.s.rds")
+bia    = readRDS("./rds/bia.rds");    bia.s    = readRDS("./rds/bia.s.rds")
 
 # old... to use as templates
 ...
@@ -143,9 +146,13 @@ saveRDS(israel.noWB, "rds/israel.noWB.rds")
 # borders.ITM = spTransform(borders, ITM)
 
 # Study area ----
-birulatus.study = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area") # 20 km, amended
-plot(birulatus.study)
-saveRDS(birulatus.study, "./rds/birulatus.study.rds")
+bir.area = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_original") # 20 km, amended
+plot(bir.area)
+saveRDS(bir.area, "./rds/bir.area.rds")
+
+bir.area.s = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_soils") # reduced
+plot(soil, ylim=c(32.7,33), xlim=c(35.5,36)); lines(bir.area.s) # zzoming in on area of interest.
+saveRDS(bir.area.s, "./rds/bir.area.s.rds")
 
 # Cities and other population centres etc ----
 population.centres   = readOGR(dsn="E:/GIS working/layers/society",layer="Population_centres")
@@ -351,11 +358,12 @@ slop = readRDS(paste0(B.heavies.rds.path,"slop.rds"));          plot(slop, main=
 # saveRDS(lith, paste0(B.heavies.rds.path,"lith.rds"))
 lith = readRDS(paste0(B.heavies.rds.path,"lith.rds"));          plot(lith, main="Lithology")
 
-# soil, not doing right now:
 # soil = raster("E:/GIS working/layers/geology and soils/soils_code2_WGSextended.tif"); plot(soil)
 # names(soil) = "Soil.type"
 # soil original processes to fill NA cells with process below. Read in output from there: 'filled' version 
-# soil = readRDS("./rds/soil.filled.rds");            plot(soil, main="soil")
+# soil = readRDS("E:/R/sdm_edrive/rds_objects/soil.filled.rds");            plot(soil, main="Soil")
+# saveRDS(soil, paste0(B.heavies.rds.path,"soil.rds"))
+soil = readRDS(paste0(B.heavies.rds.path,"soil.rds"));          plot(soil, main="Soil type")
 
 # Special job to check and deal with 'NA' '128' values in categorical lithology (and soil) layers ----
 # A) Lithology:
@@ -363,13 +371,13 @@ plot(lith, main= "Lithology")
 table(lith[]); summary(lith[]) 
 # values go up to 34, then 128 is the 'NA'; there's 2574700 na-s. But are there NAs in study area?
 length(lith[lith == 128])  # 2,574,700 
-lith.crop = crop(lith, extent(birulatus.study))
+lith.crop = crop(lith, extent(bir.area))
 
 length(lith.mask[lith.mask == 128])  # 0. So no filling needed for lithology layer.
 lsos() # just get rid of what I don't need right now:
 rm(lith.crop); rm(lith.mask)
 
-# B) Soil: maybe later:
+# B) Soil:
 {
 # soil = all.rasters[[7]] # only to check. The all.rasters layer should already be cleaned up.
 table(soil[]); summary(soil[]) # values go up to 124, then 128 is the 'NA' value. or from filled version, just 43,812,027 NAs.
@@ -436,50 +444,63 @@ crs(dem)  # good
 crs(twet) # good
 crs(slop) # good
 crs(lith) # good 
+crs(soil) # good
 
 # reproject rain raster:
 rain = projectRaster(rain, crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"); crs(rain) # good
 
-# make lists for loopy manipulation:
-# raster.list     = list(rain, jant, jult, dem, twet, slop, lith)
-# saveRDS(raster.list,  paste0(B.heavies.rds.path,"raster.list.rds"))
-raster.list = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
-raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-plot(raster.list[[2]], main = names(raster.list[[2]]))
+# make lists for loopy manipulation two lists for two alternatives:
+# raster.list.l     = list(rain, jant, jult, dem, twet, slop, lith)
+# saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.l = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+
+# raster.list.s     = list(rain, jant, jult, dem, twet, slop, soil)
+# saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
+raster.list.s = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
+
+plot(raster.list.s[[7]], main = names(raster.list.s[[7]]))
 lsos()
 
 # Align the resolutions. Here, i've put them in order of how important resolution might be:
-deg = 110865.64762119074
-res(dem)  * deg # 36.5 metres. smallest resolution. I'll go with this for now. This is raster.list #4.
+# from: http://www.csgnetwork.com/degreelenllavcalc.html
+deg.length.north = 110904.5249690638  # based on north of study area being 33.004964 degrees north
+deg.length.south = 110879.71166494413 # based on south of study area being 31.594068 degrees north
+deg = mean(c(deg.length.north,deg.length.south)) # 110892.1 for Birulatus study area
+res(soil) * deg # 32.7 metres. smallest
+res(dem)  * deg # 36.5 metres. smallest resolution in the lith set. I'll go with this for now. This is raster.list #4.
 res(lith) * deg # 92.4 metres. I'll go with this as the standard resolution
 res(slop) * deg # 92.4 metres. more useful without being over the top.
 res(rain) * deg # 291 metres
 res(twet) * deg # 461 metres
 res(jult) * deg # 54 metres
 res(jant) * deg # 54 metres
-names(raster.list[[4]])
+names(raster.list.l[[4]]) # this is the smallest resolution for the lithology set
+names(raster.list.s[[7]]) # the smallest for the soil set
 
-# use resample to make all rasters have the same resolution as the DEM layer NOTE: takes several minutes to run
+# use resample to make all rasters have the same resolution as the soil layer in the soil raster set
+# NOTE: takes several minutes to run
 par(mfrow = c(2,4), mar = c(1,2,2,4))
-for (i in c(1,2,3,5,6,7))       {  # resampling the rest to align with dem, which is number 4
-  raster.list[[i]] = resample(raster.list[[i]], raster.list[[4]], method="bilinear")
-  plot(raster.list[[i]], main = raster.list.names[[i]])
-  print(res(raster.list[[i]]))  }    # good.
+for (i in c(1,2,3,4,5,6))       {  # resampling the rest to align with soil, which is number 7
+  raster.list.s[[i]] = resample(raster.list.s[[i]], raster.list.s[[7]], method="bilinear")
+  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])
+  print(res(raster.list.s[[i]]))  }    # good.
   
 # crop all rasters to the same extent:
 par(mfrow = c(2,4), mar=c(2,2,2,4))
-for (i in 1:length(raster.list))                                            {
-  raster.list[[i]] = crop(raster.list[[i]], extent(birulatus.study))
-  raster.list[[i]] = mask(raster.list[[i]], birulatus.study)
-  plot(raster.list[[i]], main = raster.list.names[[i]])                     }
+for (i in 1:length(raster.list.s))                                            {
+  raster.list.s[[i]] = crop(raster.list.s[[i]], extent(bir.area.s))
+  raster.list.s[[i]] = mask(raster.list.s[[i]], bir.area.s)
+  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])                     }
 
 # Stack, make images, and save raster objects ----
-preds = stack(raster.list); plot(preds)
-# saveRDS(preds, paste0(B.heavies.rds.path,"preds.rds"))
-preds = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # retrieve raster stack. Slow.
+preds.s = stack(raster.list.s); plot(preds.s)
+# saveRDS(preds.s, paste0(B.heavies.rds.path,"preds.s.rds"))
+preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # retrieve raster stack. Slow.
 
 # make bricks but don't bother saving or retreiving them; brick RDSs don't save the content
-brick = brick(raster.list)
+brick.s = brick(raster.list.s)
 
 # # experimenting with colour palettes:
 par(mfrow=c(2,3), mar=c(1,1,1,1))
@@ -492,34 +513,38 @@ install.packages("dichromat"); require(dichromat)
 # plot(b.preds[[2]], col= colorRampPalette(c("blue","red"))(20))
 
 # Plot rasters in two rows (for one row: 20 * 5 cm)
-png(filename = paste0(B.heavies.image.path,"Variable rasters(two rows).png"), width=9, height=10, units='cm',res=600) 
+png(filename = paste0(B.heavies.image.path,"Variable rasters(two rows)_soil set.png"), 
+    width=9, height=10, units='cm',res=600) 
 par(mfrow=c(2,4), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and right margins respectively
-buff = birulatus.study; name = raster.list.names
+buff = bir.area.s; name = raster.list.s.names; preds = preds.s # UPDATE THIS ROW
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
 plot(preds[[3]], col=rev(heat.colors(12)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
-plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # TWet
-plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # Slop
-plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Soil
-plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil
+plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # DEM
+plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # TWet
+plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop
+plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil/Lith
 dev.off()
 
 # Plot rasters in one row: (*could shorted this code with plot-running code discovered recently)
-png(filename = paste0(B.heavies.image.path,"Variable rasters(one row).png"), width=14, height=5, units='cm',res=600) 
+png(filename = paste0(B.heavies.image.path,"Variable rasters(one row)_soil set.png"), 
+    width=14, height=5, units='cm',res=600) 
 par(mfrow=c(1,7), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and right margins respectively
-buff = birulatus.study; name = raster.list.names
+buff = bir.area.s; name = raster.list.s.names; preds = preds.s
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
 plot(preds[[3]], col=rev(heat.colors(12)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
-plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # TWet
-plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # Slop
-plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Soil
-plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil
+plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # DEM
+plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # TWet
+plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop
+plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil/lith
 dev.off()
 
 # Saving the raster objects:
-saveRDS(raster.list,  paste0(B.heavies.rds.path,"raster.list.rds"))
-saveRDS(preds,        paste0(B.heavies.rds.path,"preds.rds")) # raster stack
+saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
+saveRDS(preds.l,        paste0(B.heavies.rds.path,"preds.l.rds")) # raster stack
+saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
+saveRDS(preds.s,        paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack
 
 #######################################################################################################################
 # Importing observation datasets ----
@@ -533,35 +558,37 @@ bi.raw <- readOGR(dsn="E:/GIS working/layers/birulatus", layer="birulatus_correc
 head(bi.raw) 
 str(bi.raw) 
 summary(bi.raw)
-plot(bi.raw); lines(israel.WB, col="blue")
+par(mfrow=c(1,7)); plot(bi.raw); lines(israel.WB, col="blue")
 hist(bi.raw$lat)
+bi.raw$occurrence = ifelse(bi.raw$Birulatus == "Yes",1,0) 
+table(bi.raw$occurrence, bi.raw$Birulatus) # good
+bi.raw$Birulatus = NULL
 
-bi = bi.raw[birulatus.study, ] # super-simple spatial subsetting by polygon clip
-bi$occurrence = ifelse(bi$Birulatus == "Yes",1,0) 
-table(bi$occurrence, bi$Birulatus) # good
-bi$Birulatus = NULL
+bi   = bi.raw[bir.area, ]   # super-simple spatial subsetting by polygon clip
+bi.s = bi.raw[bir.area.s, ] # super-simple spatial subsetting by polygon clip
 
-bip = bi[bi$occurrence == 1,]
-bia = bi[bi$occurrence == 0,]
+bip.s = bi.s[bi.s$occurrence == 1,]
+bia.s = bi.s[bi.s$occurrence == 0,]
 
 # Plot observations
-png(filename = "images/obs 1 - Birulatus survey data by presence-absence.png", width=10, height=20, units='cm',res=600)
+png(filename = "images/obs 1 - Birulatus survey data by presence-absence_soilset.png", 
+    width=10, height=20, units='cm',res=600)
 par(mar=c(1,1,2,1), mfrow=c(1,1))
-plot(birulatus.study, col = NA,border="darkgreen",
-     main="Birulatus survey data (181 features)", cex.main = 1,  font.main= 2)
+plot(bir.area.s, col = NA, border="darkgreen",
+     main="Birulatus survey data (171 features)", cex.main = 1,  font.main= 2) # 181 features for lith set
 lines(israel.WB, col="grey", lty=5, lwd=2)
-points(bi[bi$occurrence == 1,],col='blue',pch=16, cex=0.7)
-points(bi[bi$occurrence == 0,],col='red',pch=16, cex=0.7)
+points(bi.s[bi.s$occurrence == 1,],col='blue', pch=16, cex=0.7)
+points(bi.s[bi.s$occurrence == 0,],col='red',  pch=16, cex=0.7)
 lines(groads, col="grey73")
 points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
 selected.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
 points(selected.towns,        pch=21, col='black', bg='yellow', cex=0.8)
 with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
 with(selected.towns, text(selected.towns$lat~selected.towns$lon, labels=selected.towns$name,pos=4,cex=0.6, offset=0.3))
-legend("topleft", c("Presence (83 observations)", "Absence (98 observations)"), col=c("blue","red"), pch=16, cex=.7)
+legend("topleft", c("Presence (83 observations)", "Absence (88 observations)"), col=c("blue","red"), pch=16, cex=.7)
 dev.off()
 
 # saveRDS(bi.raw,  "./rds/bi.raw.rds") 
-# saveRDS(bi,      "./rds/bi.rds")
-# saveRDS(bip,      "./rds/bip.rds")
-# saveRDS(bia,      "./rds/bia.rds")
+# saveRDS(bi.s,      "./rds/bi.s.rds")
+# saveRDS(bip.s,      "./rds/bip.s.rds")
+# saveRDS(bia.s,      "./rds/bia.s.rds")

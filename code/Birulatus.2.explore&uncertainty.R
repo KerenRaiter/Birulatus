@@ -79,23 +79,26 @@ bi.raw = readRDS("./rds/bi.raw.rds")
 bi = readRDS("./rds/bi.rds") 
 
 #######################################################################################################################
-# Plot layers (from here down it's legacy code)----
+# Plot layers ----
 
-plot(preds, main = raster.list.names)
+plot(preds.s, main = raster.list.s.names)
+preds = preds.s # instead of changing the name of the preds set in the code below, to refer to the soil set
 
 # Test for multicollinearity ----
 # Get variance inflation Factor and test for multicollinearity:
 names(preds) 
 lstats = layerStats(preds, 'pearson', na.rm=T)
-corr_matrix = lstats$'pearson correlation coefficient'
+corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
 
-png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus.png"),width=20,height=20,units='cm',res=600)
+png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_soilset.png"),
+    width=20,height=20,units='cm',res=600)
 pairs(preds, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
 dev.off()
 
 # Zuur: Some statisticians suggest that VIF values higher then 5 or 10 are too high. In ecology vif larger than 3 is considered too much
 vif(preds) 
-raster.list.names
+vifcor(preds)
+raster.list.s.names
 # getting rid of elevation
 preds.nocoll = stack(preds[[1]],preds[[2]],preds[[5]],preds[[6]],preds[[7]])
 vif(preds.nocoll)
