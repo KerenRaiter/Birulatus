@@ -832,3 +832,64 @@ ensemble(m2, ...)
 
 #####
 # 
+# Calculating distance to nearest point ----
+
+# from https://stackoverflow.com/questions/21977720/r-finding-closest-neighboring-point-and-number-of-neighbors-within-a-given-rad
+
+# Best option is to use libraries sp and rgeos, which enable you to construct spatial classes and perform geoprocessing.
+
+library(sp)
+library(rgeos)
+
+# Read the data and transform them to spatial objects:
+"C:\Users\owner\Desktop\test.txt"
+mydata <- read.delim('c:/Users/owner/Desktop/test.txt', header=T) # not good format
+mydata = read_()
+
+sp.mydata <- mydata
+coordinates(sp.mydata) <- ~long+lat
+
+class(sp.mydata)
+# "SpatialPointsDataFrame"
+attr(,"package")
+# "sp"
+# Now calculate pairwise distances between points
+
+d <- gDistance(sp.mydata, byid=T)
+
+# Find second shortest distance (closest distance is of point to itself, therefore use second shortest)
+
+min.d <- apply(d, 1, function(x) order(x, decreasing=F)[2])
+
+# Construct new data frame with desired variables
+
+newdata <- cbind(mydata, mydata[min.d,], apply(d, 1, function(x) sort(x, decreasing=F)[2]))
+
+colnames(newdata) <- c(colnames(mydata), 'neighbor', 'n.lat', 'n.long', 'n.area', 'n.canopy', 'n.avg.depth', 'distance')
+
+# newdata
+# pond      lat      long area canopy avg.depth     neighbor    n.lat    n.long n.area n.canopy n.avg.depth
+# 6            A10 41.95928 -72.14605 1500     66  60.61538 Borrow.Pit.3 41.95546 -72.15375      0        0    29.22222
+# 3          AA006 41.96431 -72.12100  250      0  57.77778   Blacksmith 41.95508 -72.12380    361       77    71.31250
+# 2     Blacksmith 41.95508 -72.12380  361     77  71.31250        AA006 41.96431 -72.12100    250        0    57.77778
+# 5   Borrow.Pit.1 41.95601 -72.15419    0      0  41.44444 Borrow.Pit.2 41.95571 -72.15413      0        0    37.70000
+# 4   Borrow.Pit.2 41.95571 -72.15413    0      0  37.70000 Borrow.Pit.1 41.95601 -72.15419      0        0    41.44444
+# 5.1 Borrow.Pit.3 41.95546 -72.15375    0      0  29.22222 Borrow.Pit.2 41.95571 -72.15413      0        0    37.70000
+# 6.1      Boulder 41.91822 -72.14978 1392     98  43.53333 Borrow.Pit.3 41.95546 -72.15375      0        0    29.22222
+# distance
+# 6   0.0085954872
+# 3   0.0096462277
+# 2   0.0096462277
+# 5   0.0003059412
+# 4   0.0003059412
+# 5.1 0.0004548626
+# 6.1 0.0374480316
+
+# Edit: if coordinates are in degrees and you would like to calculate distance in kilometers, use package geosphere
+
+library(geosphere)
+
+d <- distm(sp.mydata)
+
+# rest is the same
+# This should provide better results, if the points are scattered across the globe and coordinates are in degrees

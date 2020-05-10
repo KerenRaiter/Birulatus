@@ -255,8 +255,8 @@ plot(kkl.forestry, add = T, col="brown",border="brown")
 # landuse_simple = rmapshaper::ms_simplify(landuse_b, keep = 0.2, keep_shapes = TRUE)
 
 {# b.disturbed <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="disturbance_b_diss") 
-saveRDS(b.disturbed, paste0(heavies.rds.path,"b.disturbed.rds"))
-b.disturbed = readRDS(paste0(heavies.rds.path,"b.disturbed.rds"))
+# saveRDS(b.disturbed, paste0(heavies.rds.path,"b.disturbed.rds"))
+# b.disturbed = readRDS(paste0(heavies.rds.path,"b.disturbed.rds"))
 # This version has an issue in that there are 'uncategorized' polygons that overlay 'categorised' ones. 
 # But I can manage it - just plot the uncategorized layer at the bottom.
 # b.disturbed.sp <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="merged_disturbance_beershebensis_sp") 
@@ -328,7 +328,7 @@ b.disturbed = readRDS(paste0(heavies.rds.path,"b.disturbed.rds"))
 # Raster data  ----
 # note: very slow, best to just reload a previously-run version, see end of section line 
 
-par(mar=c(0,0,2,0), bty="n")
+par(mfrow = c(2,4), mar=c(2,2,2,2), bty="n")
 # rain = raster("E:/GIS working/layers/climate/Annual_Rain_1981-2010.tif"); plot(rain); names(rain)="Precipitation"
 # saveRDS(rain, paste0(B.heavies.rds.path,"rain.original.rds"))
 rain = readRDS(paste0(B.heavies.rds.path,"rain.original.rds"));          plot(rain, main="Rainfall")
@@ -452,14 +452,15 @@ rain = projectRaster(rain, crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84
 # make lists for loopy manipulation two lists for two alternatives:
 # raster.list.l     = list(rain, jant, jult, dem, twet, slop, lith)
 # saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
-raster.list.l = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
 raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
 
 # raster.list.s     = list(rain, jant, jult, dem, twet, slop, soil)
 # saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
-raster.list.s = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
 
+plot(raster.list.l[[7]], main = names(raster.list.l[[7]]))
 plot(raster.list.s[[7]], main = names(raster.list.s[[7]]))
 lsos()
 
@@ -470,7 +471,7 @@ deg.length.south = 110879.71166494413 # based on south of study area being 31.59
 deg = mean(c(deg.length.north,deg.length.south)) # 110892.1 for Birulatus study area
 res(soil) * deg # 32.7 metres. smallest
 res(dem)  * deg # 36.5 metres. smallest resolution in the lith set. I'll go with this for now. This is raster.list #4.
-res(lith) * deg # 92.4 metres. I'll go with this as the standard resolution
+res(lith) * deg # 92.4 metres. 
 res(slop) * deg # 92.4 metres. more useful without being over the top.
 res(rain) * deg # 291 metres
 res(twet) * deg # 461 metres
@@ -482,22 +483,33 @@ names(raster.list.s[[7]]) # the smallest for the soil set
 # use resample to make all rasters have the same resolution as the soil layer in the soil raster set
 # NOTE: takes several minutes to run
 par(mfrow = c(2,4), mar = c(1,2,2,4))
-for (i in c(1,2,3,4,5,6))       {  # resampling the rest to align with soil, which is number 7
-  raster.list.s[[i]] = resample(raster.list.s[[i]], raster.list.s[[7]], method="bilinear")
-  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])
-  print(res(raster.list.s[[i]]))  }    # good.
+
+rasterlist = raster.list.l; rasterlist.names = raster.list.l.names; area = bir.area # set these for the 2 loops below.
+
+for (i in c(1,2,3,5,6,7))       {  # resampling the rest to align with elevation, which is number 4 (for soils use 7)
+  rasterlist[[i]] = resample(rasterlist[[i]], rasterlist[[4]], method="bilinear")
+  plot(rasterlist[[i]], main = rasterlist.names[[i]])
+  print(res(rasterlist[[i]]))  }    # good.
   
 # crop all rasters to the same extent:
 par(mfrow = c(2,4), mar=c(2,2,2,4))
-for (i in 1:length(raster.list.s))                                            {
-  raster.list.s[[i]] = crop(raster.list.s[[i]], extent(bir.area.s))
-  raster.list.s[[i]] = mask(raster.list.s[[i]], bir.area.s)
-  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])                     }
+for (i in 1:length(rasterlist))                                            {
+  rasterlist[[i]] = crop(rasterlist[[i]], extent(area))
+  rasterlist[[i]] = mask(rasterlist[[i]], area)
+  plot(rasterlist[[i]], main = rasterlist.names[[i]])                     }
+
+# take back to original name once the 2 two loops above have finished:
+raster.list.l = rasterlist 
 
 # Stack, make images, and save raster objects ----
 preds.s = stack(raster.list.s); plot(preds.s)
 # saveRDS(preds.s, paste0(B.heavies.rds.path,"preds.s.rds"))
 preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # retrieve raster stack. Slow.
+
+preds.l = stack(raster.list.l); plot(preds.l)
+# saveRDS(preds.l, paste0(B.heavies.rds.path,"preds.l.rds"))
+preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # retrieve raster stack. Slow.
+
 
 # make bricks but don't bother saving or retreiving them; brick RDSs don't save the content
 brick.s = brick(raster.list.s)
@@ -564,31 +576,42 @@ bi.raw$occurrence = ifelse(bi.raw$Birulatus == "Yes",1,0)
 table(bi.raw$occurrence, bi.raw$Birulatus) # good
 bi.raw$Birulatus = NULL
 
-bi   = bi.raw[bir.area, ]   # super-simple spatial subsetting by polygon clip
-bi.s = bi.raw[bir.area.s, ] # super-simple spatial subsetting by polygon clip
+# Remove observations where absences are too close to presences (they risk dominating them)
+bi.raw = bi.raw[ grep ("remove due to proximity", bi.raw$absen_rem, invert = TRUE) , ]
+table(bi.raw$occurrence) # 14 of the 122 absence records removed for being too close to presence records.
 
-bip.s = bi.s[bi.s$occurrence == 1,]
-bia.s = bi.s[bi.s$occurrence == 0,]
+# full study area/lithology version:
+(bi   = bi.raw[bir.area, ])   # super-simple spatial subsetting by polygon clip
+(bip = bi[bi$occurrence == 1,]) # bip = birulatus presences, within the full study area (as modelling with lithology)
+(bia = bi[bi$occurrence == 0,]) # bia = birulatus presences, within the full study area (as modelling with lithology)
+
+# soil-delimited study area version:
+(bi.s = bi.raw[bir.area.s, ]) # a few removed that don't fit in the area that can be modelled with the soils layer.
+(bip.s = bi.s[bi.s$occurrence == 1,]) # bip.s = birulatus presences, within soils-delimited study area (misses part Golan)
+(bia.s = bi.s[bi.s$occurrence == 0,]) # bia.s = birulatus presences, within soild-delimited study area (misses part Golan)
 
 # Plot observations
-png(filename = "images/obs 1 - Birulatus survey data by presence-absence_soilset.png", 
-    width=10, height=20, units='cm',res=600)
+png(filename = "images/obs 1 - Birulatus survey data by presence-absence_full study area.png", 
+    width=10, height=20, units='cm', res=600)
 par(mar=c(1,1,2,1), mfrow=c(1,1))
-plot(bir.area.s, col = NA, border="darkgreen",
-     main="Birulatus survey data (171 features)", cex.main = 1,  font.main= 2) # 181 features for lith set
+plot(bir.area, col = NA, border="darkgreen",
+     main="Birulatus survey data (167 features)", cex.main = 1,  font.main= 2) # 167 features for lith set
 lines(israel.WB, col="grey", lty=5, lwd=2)
-points(bi.s[bi.s$occurrence == 1,],col='blue', pch=16, cex=0.7)
-points(bi.s[bi.s$occurrence == 0,],col='red',  pch=16, cex=0.7)
+points(bi[bi$occurrence == 1,], col='blue', pch=16, cex=0.7)
+points(bi[bi$occurrence == 0,], col='red',  pch=16, cex=0.7)
 lines(groads, col="grey73")
 points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
 selected.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
 points(selected.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
-with(selected.towns, text(selected.towns$lat~selected.towns$lon, labels=selected.towns$name,pos=4,cex=0.6, offset=0.3))
-legend("topleft", c("Presence (83 observations)", "Absence (88 observations)"), col=c("blue","red"), pch=16, cex=.7)
+with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.8, offset=0.4)) 
+with(selected.towns, text(selected.towns$lat~selected.towns$lon, labels=selected.towns$name,pos=4,cex=0.7, offset=0.4))
+legend("topleft", c("Presence (83 observations)", "Absence (84 observations)"), col=c("blue","red"), pch=16, cex=.7)
 dev.off()
 
 # saveRDS(bi.raw,  "./rds/bi.raw.rds") 
+# saveRDS(bi,      "./rds/bi.rds") 
+# saveRDS(bip,      "./rds/bip.rds")
+# saveRDS(bia,      "./rds/bia.rds")
 # saveRDS(bi.s,      "./rds/bi.s.rds")
 # saveRDS(bip.s,      "./rds/bip.s.rds")
 # saveRDS(bia.s,      "./rds/bia.s.rds")

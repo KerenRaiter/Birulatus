@@ -67,6 +67,7 @@ ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000
 
 #######################################################################################################################
 # Datasets prepared earlier ----
+
 # from this script:
 
 package_names          = readRDS("rds/package_names.rds")
@@ -91,35 +92,35 @@ villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
 
-raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
-raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
+raster.list         = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
+raster.list.names   = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+preds               = readRDS(paste0(B.heavies.rds.path, "preds.rds")) # raster stack
+preds.l.nocoll      = readRDS(paste0(B.heavies.rds.path, "preds.l.nocoll.rds")) # raster stack, collinear vars excl.
 
 bi.raw = readRDS("./rds/bi.raw.rds") 
-bi     = readRDS("./rds/bi.rds") 
-bip    = readRDS("./rds/bip.rds")
-bia    = readRDS("./rds/bia.rds")
+bi     = readRDS("./rds/bi.rds")   # full study area (for modelling with lithology layer)
+bip    = readRDS("./rds/bip.rds")  # presences
+bia    = readRDS("./rds/bia.rds")  # absences
+
+bi.s     = readRDS("./rds/bi.s.rds")  # soil-delimited study area, for modelling with soils layer (misses part Golan)
+bip.s    = readRDS("./rds/bip.s.rds") # presences
+bia.s    = readRDS("./rds/bia.s.rds") # absences
 
 # legacy :
 # b_package_names         = readRDS("./rds_objects/b_package_names.rds")
 # b.combo.descriptions    = readRDS("./rds_objects/b.combo.descriptions.rds")
 # obs_packages            = readRDS("./rds_objects/obs_packages.rds")
 # b_data_packages         = readRDS("./rds_objects/b_data_packages.rds")
-# 
-# ssp  = readRDS ("./rds_objects/ssp.rds")
-# ssa  = readRDS ("./rds_objects/ssa.rds")
-# sc   = readRDS ("./rds_objects/sc.rds")
-# sc.r = readRDS ("./rds_objects/sc.r.rds")
 
 #########################################################################################################
 # Prepare observational data for input into data packages ----
 
-points.list = list(bip,bia) 
+points.list        = list(bip, bia) 
 points.short.names = list("bip","bia")
-points.full.names = list("bip  = Birulatus presence data", "bia  = Birulatus absence data")
+points.full.names  = list("bip  = Birulatus presence data", "bia  = Birulatus absence data")
 
 for (p in 1:length(points.list)) {
-  print(points.full.names[[p]])                         # print name of dataset to start us off...
+  print(points.full.names[[p]])                           # print name of dataset to start us off...
   print(class(points.list[[p]]))                          # see class. should be "SpatialPointsDataFrame"
   print(length(points.list[[p]]))                         # how many data points in this dataset?
   points.list[[p]]@coords = points.list[[p]]@coords[,1:2] # Remove third (Z) coordinate if present
@@ -128,40 +129,20 @@ for (p in 1:length(points.list)) {
   print(summary(points.list[[p]]$occurrence))             # again, ensure occurrence is recorded consistently
   points.list[[p]]@data <- points.list[[p]]@data[,'occurrence', drop=F] # dropping all attributes other than occurrence
   print(names(points.list[[p]]))                                        # check that only "occurrence" remains
-}
+} # check in output that there are just two coords (x1 and x2), and the expected number of features. 
 
-# output should look like this:
-{ 
-# [1] "bc = beershebensis collections presences"
-# [1] "SpatialPointsDataFrame"
-# attr(,"package")
-# [1] "sp"
-# [1] 314
-# coords.x1       coords.x2    
-# Min.   :34.39   Min.   :30.78  
-# 1st Qu.:34.79   1st Qu.:31.06  
-# Median :34.84   Median :31.21  
-# Mean   :34.90   Mean   :31.15  
-# 3rd Qu.:35.02   3rd Qu.:31.26  
-# Max.   :35.28   Max.   :31.45  
-# num [1:314] 1 1 1 1 1 1 1 1 1 1 ...
-# NULL
-# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 1       1       1       1       1       1 
-# [1] "occurrence"
-}
-
+# convert back to original names:
 bip   = points.list[[1]]
 bia   = points.list[[2]]
 
 saveRDS(bip,         "./rds/bip.rds")
-saveRDS(bsa,         "./rds/bsa.rds")
+saveRDS(bia,         "./rds/bia.rds")
 
 #########################################################################################################
 # Create data packages for each combo -----
 
 # Data combination descriptions
-combo.descriptions = list("A: All data equal")
+combo.descriptions = list("A: Study area based on lithology")
 
 obs_A = rbind(bip, bia)
 # obs_B = rbind(bsp, bsa.r)
@@ -173,23 +154,21 @@ obs_A = rbind(bip, bia)
 # obs_H = rbind(bsp, bc.r)
 # obs_I = rbind(bsp, bc)
 
-obs_packages  = list(obs_A)
-                     #obs_B, obs_C, obs_D, obs_E, obs_F, obs_G, obs_H, obs_I)
-scenario.names = list('All data equal scenario')
+obs_packages  = list(obs_A)        # obs_B, obs_C, obs_D, obs_E, obs_F, obs_G, obs_H, obs_I)
+scenario.names = list('Scenario for study area, using lithology variable')
 data_packages = list()
 remove.duplicates(obs_A) # no duplicates
 
 for (d in 1:length(scenario.names)) {
-  data_packages[[d]] = sdmData(formula = occurrence ~ ., train = obs_packages[[d]], predictors = preds.nocoll)
+  data_packages[[d]] = sdmData(formula = occurrence ~ ., train = obs_packages[[d]], predictors = preds.l.nocoll)
   print("------------"); print(scenario.names[[d]]); print(data_packages[[d]])   
   print(length(obs_packages[[d]]))   } # 181 observations (none dropped from obs package number, )
 
-# A note on the difference in feature numbers: the data_packages function automatically removes spatial duplictes. 
+# A note on the difference in record numbers: the data_packages function automatically removes spatial duplictes. 
 # to see how many duplicate-free points there are in original data set, use remove.duplicates() as above)
 
 # main output objects from this section:
 saveRDS(scenario.names,        "./rds/scenario.names.rds")
-saveRDS(scenario.descriptions, "./rds/scenario.descriptions.rds")
 saveRDS(obs_packages,          "./rds/obs_packages.rds")
 saveRDS(data_packages,         "./rds/data_packages.rds")
 

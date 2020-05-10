@@ -137,48 +137,6 @@ getmethodNames('sdm')
 # Similarly I'm going to leave out glmnet (:GLM with lasso or elasticnet regularization; https://rdrr.io/rforge/sdm/src/inst/methods/sdm/glmnet.R as it's a poor performer and has been causing some issues with some models not working.)
 
 ########################################################################################################
-# Exploration of the effect of the different evaluation approaches ----
-# Subsampling evaluation; 50 runs taking 30 percent as test:
-modelA.data = b_data_packages[[1]]
-a.sb = sdm(occurrence ~ ., data = modelA.data, methods =c("cart",'fda','gam','brt','rf','glm', 'glmnet',
-                                                          'mda','rpart','svm'), # maxent method not available
-                                                           n=50, replication = 'sub', test.percent = 30); roc(a.sb, smooth = T)
-
-# Cross-validation evaluation; 10 runs, 5 folds, taking 30 percent as test: 
-a.cv= sdm(occurrence ~ ., data = modelA.data, methods =c("cart",'fda','gam','brt','rf','glm', 'glmnet',
-                                                         'mda','rpart','svm'), 
-                                                          n=10, replication = 'cv', cv.folds=5, test.percent = 30); roc(a.cv, smooth = T)
-
-# Bootstrap evaluation: 50 runs, taking 30 percent as test:
-a.bt= sdm(occurrence ~ ., data = modelA.data, methods =c("cart",'fda','gam','brt','rf','glm', 'glmnet',
-                                                         'mda','rpart','svm'), 
-                                                          n=50, replication = 'boot', test.percent = 30); roc(a.bt, smooth = T)
-
-# Combining Cross-validation and bootstrapping evaluation methods:
-# a.cb = sdm(occurrence ~ ., data = modelA.data, methods =c("cart",'fda','gam','brt','rf','glm', 'glmnet',                                                          'mda','rpart','svm'), n=10, replication = c('cv','boot'),cv.folds=5, test.percent = 30)
-
-a.sb; a.sb.e = getEvaluation(a.sb)
-a.cv; a.cv.e = getEvaluation(a.cv)
-a.bt; a.bt.e = getEvaluation(a.bt)
-# a.cb; a.cb.e = getEvaluation(a.cb)
-# I've copied the outputs into my SDM word document to make for easy comparison, and concluded that the different eval methods vary substantially, though are fairly consistent in their relative ranks. Subsampling is the harshest, bootstrap is the kindest, cv is almost as harsh as subsampling. Using a combo of CV and Bootstrap is probably good. Actually, no, as that will produce different evaluation info for each evaluation method, different ROC curves and all. too much. Let's just do cross-validation. 
-
-# par(mar=c(2,2,2,2))  # sets the bottom, left, top and right margins respectively
-# png("roc.a.sb.png", width = 30, height = 20, units = "cm", res = 600) 
-# roc(a.sb,smooth=TRUE); dev.off()
-# 
-# png("roc.a.cv.png", width = 30, height = 20, units = "cm", res = 600) 
-# roc(a.cv,smooth=TRUE); dev.off()
-# 
-# png("roc.a.bt.png", width = 30, height = 20, units = "cm", res = 600) 
-# roc(a.bt,smooth=TRUE); dev.off()
-# 
-# png("roc.a.cb.png", width = 30, height = 20, units = "cm", res = 600) 
-# roc(a.cb,smooth=TRUE); dev.off()
-# end of exploration of different evaluation approaches. Eval method to go forward: cv.
-
-# 
-########################################################################################################
 # Create evaluation models for each scenario -----
 # Define input list, output list, and function 
 
