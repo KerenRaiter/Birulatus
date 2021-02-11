@@ -155,7 +155,7 @@ obs_A = rbind(bip, bia)
 # obs_I = rbind(bsp, bc)
 
 obs_packages  = list(obs_A)        # obs_B, obs_C, obs_D, obs_E, obs_F, obs_G, obs_H, obs_I)
-scenario.names = list('Scenario for study area, using lithology variable')
+scenario.names = list('Scenario A: lithology & study area')
 data_packages = list()
 remove.duplicates(obs_A) # no duplicates
 

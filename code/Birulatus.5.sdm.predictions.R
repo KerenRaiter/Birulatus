@@ -70,10 +70,10 @@ occmaps.svm      = readRDS(paste0(B.heavies.rds.path,"occmaps.svm.rds"))
 occmaps.gam      = readRDS(paste0(B.heavies.rds.path,"occmaps.gam.rds"))
 
 # from previous scripts:
-eval.list       = readRDS("./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
-eval.summary    = readRDS("./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
-eval.summary.df = readRDS("./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
-methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
+eval.list       = readRDS(paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))       # 'raw' list of eval data from each model
+eval.summary    = readRDS(paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
+eval.summary.df = readRDS(paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
+# methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
 top.algs        = c('rf','brt','svm','gam')
 top.algs.l      = list('rf','brt','svm','gam')
 
@@ -124,19 +124,12 @@ for (i in 1:length(data_packages))                                              
 # # see how they went:
 # b_scenario.names[[1]]; b.model.list.complete[[1]]
 # b_scenario.names[[2]]; b.model.list.complete[[2]]
-# b_scenario.names[[3]]; b.model.list.complete[[3]]
-# b_scenario.names[[4]]; b.model.list.complete[[4]]
 # b.model.list.complete[[i]][[5]]
 
 ########################################################################################################
 # Predict the model outputs ----
 
-for (a in 1:length(top.algs)) { assign ( paste0("predmaps.",top.algs[[a]]), list() ) }
-
-predmaps.rf    = list()
-predmaps.brt   = list()
-predmaps.svm   = list()
-predmaps.gam   = list()
+for (a in 1:length(top.algs)) { assign ( paste0("predmaps.",top.algs[[a]]), list() ) } # instead of 1 by 1
 
 for (i in 1:length(scenario.names))                                                           {
   start.time       = Sys.time()
@@ -267,7 +260,7 @@ for (i in 1:length(scenario.names))                                             
     print(paste(top.algs[[a]],"sub-loop took", difftime(Sys.time(), alg.start.time, units="mins"), "minutes"))}
     print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
 
-saveRDS(occmaps.rf, paste0(B.heavies.rds.path,"occmaps.rf.rds"))
+saveRDS(occmaps.rf,  paste0(B.heavies.rds.path,"occmaps.rf.rds"))
 saveRDS(occmaps.brt, paste0(B.heavies.rds.path,"occmaps.brt.rds"))
 saveRDS(occmaps.svm, paste0(B.heavies.rds.path,"occmaps.svm.rds"))
 saveRDS(occmaps.gam, paste0(B.heavies.rds.path,"occmaps.gam.rds"))

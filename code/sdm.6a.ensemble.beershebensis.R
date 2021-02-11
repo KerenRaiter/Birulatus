@@ -43,10 +43,10 @@ send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
 lsos <- function(..., n=10) {.ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)}}
 lsos()
 
-# load data:
-heavies.spatial.path = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/spatial/'
-heavies.rds.path     = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/'
-heavies.image.path   = '//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/images/'
+# Birulatus heavies will be on E drive (at least for now), with E drive being backed up to HUJI server regularly
+B.heavies.spatial.path = 'E:/R/Birulatus_heavies/spatial/'
+B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
+B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
 #  Beershebensis data:
 # b.model.list.complete  = readRDS("./rds_objects/b.model.list.complete.rds") 

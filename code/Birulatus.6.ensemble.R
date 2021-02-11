@@ -21,41 +21,41 @@ emailme = function() {
   send.mail(from="kerengila@gmail.com",       to="keren.raiter@mail.huji.ac.il",
             subject="the loop is complete",   body="yeah yeah yeah",        html=T,
             smtp=list(host.name = "smtp.gmail.com",          port = 465,
-                      user.name = "kerengila@gmail.com",     passwd = "Ivrit333",
+                      user.name = "kerengila@gmail.com",     passwd = "MtotoMtoto123",
                       ssl = T), authenticate=T) #, attach.files="C:\\Users\\Deepanshu\\Nature.xls"  
 }
 
 plot.withreference.data = function(distribution) {
-  par(mar=c(1,1,1,1), bty="n")
-  plot(distribution, col="green", xlim=c(34.27173,35.3248), ylim=c(31.12667,33.10742), bty="n", axes=F,legend=F)
-  lines(borders, lwd=1, col="seashell4")
-  plot(schreiberi.buffer, lwd=0.5, add=T)
-  plot(major.cities, pch=21, bg='yellow', cex=1.3, add=TRUE)
-  with(major.cities, text(major.cities$lat~major.cities$lon, labels = major.cities$name, pos=2, cex=0.8, offset=0.3))
-  points(ssp,  col='purple',       pch=16, cex=0.3) 
-  points(ssa,  col='pink',         pch=16, cex=0.3) 
-  points(sc,   col='deepskyblue2', pch=16, cex=0.3)
-  points(sc.r, col='darkblue',     pch=16, cex=0.3) 
-  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
-                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
-                    pch=16, col=c("purple","pink","darkblue","deepskyblue2"),pt.cex = 0.4, cex=1)
-  png(filename = paste0(heavies.image.path,"schreiberi/","S ", deparse(substitute(distribution)), ".png"), 
-      width=16, height=22, units='cm',res=900)
-  par(mar=c(1,1,1,1), bty="n")
-  plot(distribution, col="green", xlim=c(34.27173,35.3248), ylim=c(31.12667,33.10742), bty="n", axes=F,legend=F)
-  lines(borders, lwd=1, col="seashell4")
-  plot(schreiberi.buffer, lwd=0.5, add=T)
-  plot(major.cities, pch=21, bg='yellow', cex=1.3, add=TRUE)
-  with(major.cities, text(major.cities$lat~major.cities$lon, labels = major.cities$name, pos=2, cex=0.8, offset=0.3))
-  points(ssp,  col='purple',       pch=16, cex=0.3) 
-  points(ssa,  col='pink',         pch=16, cex=0.3) 
-  points(sc,   col='deepskyblue2', pch=16, cex=0.3)
-  points(sc.r, col='darkblue',     pch=16, cex=0.3) 
-  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
-                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
-                    pch=16, col=c("purple","pink","darkblue","deepskyblue2"),pt.cex = 0.4, cex=1)
-  dev.off()
-}
+  # par(mar=c(1,1,1,1), bty="n")
+  # plot(distribution, col="green", xlim=c(34.27173,35.3248), ylim=c(31.12667,33.10742), bty="n", axes=F,legend=F)
+  # lines(borders, lwd=1, col="seashell4")
+  # plot(schreiberi.buffer, lwd=0.5, add=T)
+  # plot(major.cities, pch=21, bg='yellow', cex=1.3, add=TRUE)
+  # with(major.cities, text(major.cities$lat~major.cities$lon, labels = major.cities$name, pos=2, cex=0.8, offset=0.3))
+  # points(ssp,  col='purple',       pch=16, cex=0.3) 
+  # points(ssa,  col='pink',         pch=16, cex=0.3) 
+  # points(sc,   col='deepskyblue2', pch=16, cex=0.3)
+  # points(sc.r, col='darkblue',     pch=16, cex=0.3) 
+  # legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
+  #                   "Reliable collections data (63)", "Unreliable collections data (30)"), 
+  #                   pch=16, col=c("purple","pink","darkblue","deepskyblue2"),pt.cex = 0.4, cex=1)
+  # png(filename = paste0(B.heavies.image.path,"schreiberi/","S ", deparse(substitute(distribution)), ".png"), 
+  #     width=16, height=22, units='cm',res=900)
+  # par(mar=c(1,1,1,1), bty="n")
+  # plot(distribution, col="green", xlim=c(34.27173,35.3248), ylim=c(31.12667,33.10742), bty="n", axes=F,legend=F)
+  # lines(borders, lwd=1, col="seashell4")
+  # plot(schreiberi.buffer, lwd=0.5, add=T)
+  # plot(major.cities, pch=21, bg='yellow', cex=1.3, add=TRUE)
+  # with(major.cities, text(major.cities$lat~major.cities$lon, labels = major.cities$name, pos=2, cex=0.8, offset=0.3))
+  # points(ssp,  col='purple',       pch=16, cex=0.3) 
+  # points(ssa,  col='pink',         pch=16, cex=0.3) 
+  # points(sc,   col='deepskyblue2', pch=16, cex=0.3)
+  # points(sc.r, col='darkblue',     pch=16, cex=0.3) 
+  # legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
+  #                   "Reliable collections data (63)", "Unreliable collections data (30)"), 
+  #                   pch=16, col=c("purple","pink","darkblue","deepskyblue2"),pt.cex = 0.4, cex=1)
+  # dev.off()
+} # legacy - commented out
 
 # List objects by size
 {
@@ -88,12 +88,6 @@ B.heavies.spatial.path = 'E:/R/Birulatus_heavies/spatial/'
 B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
 B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
-# define map limits for plotting later:
-xlims.s      = c(35.14081, 35.86214) # for plotting whole study area
-ylims.s      = c(31.59407, 33.00496) # for plotting whole study area
-#xlims.s.dist = c(34.27179, 35.32475) # for plotting distributions (i.e. may be smaller)
-#ylims.s.dist = c(31.12669, 33.10753) # for plotting distributions (i.e. may be smaller)
-
 # Load datasets prepared earlier from previous scripts ----
 
 predmaps.rf       = readRDS(paste0(B.heavies.rds.path,"predmaps.rf.rds"))
@@ -106,15 +100,14 @@ occmaps.brt      = readRDS(paste0(B.heavies.rds.path,"occmaps.brt.rds"))
 occmaps.svm      = readRDS(paste0(B.heavies.rds.path,"occmaps.svm.rds"))
 occmaps.gam      = readRDS(paste0(B.heavies.rds.path,"occmaps.gam.rds"))
 
-eval.list       = readRDS("./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
-eval.summary    = readRDS("./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
-eval.summary.df = readRDS("./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
-methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
+eval.list       = readRDS(paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))       # 'raw' list of eval data from each model
+eval.summary    = readRDS(paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
+eval.summary.df = readRDS(paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
 top.algs        = c('rf','brt','svm','gam')
 top.algs.l      = list('rf','brt','svm','gam')
+top.algs.evalsum.num = list(5,4,9,3)
 
 scenario.names         = readRDS("rds/scenario.names.rds")
-scenario.descriptions  = readRDS("rds/scenario.descriptions.rds")
 obs_packages           = readRDS("rds/obs_packages.rds")
 data_packages          = readRDS("rds/data_packages.rds")
 
@@ -122,9 +115,9 @@ borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("r
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
 
-birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
-xlims = c(35.14081, 35.86214)
-ylims = c(31.59407, 33.00496)
+bir.area  = readRDS("./rds/bir.area.rds") # study area
+xlims = c(35.14081, 35.86214) # map limits for plotting later
+ylims = c(31.59407, 33.00496) # map limits for plotting later
 
 major.cities = readRDS("./rds/major.cities.rds")
 small.cities = readRDS("./rds/small.cities.rds")
@@ -137,7 +130,7 @@ groads       = readRDS("./rds/groads.rds")
 raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
 raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
 preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
-preds.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack
+preds.l.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # raster stack
 
 bi.raw = readRDS("./rds/bi.raw.rds") 
 bi     = readRDS("./rds/bi.rds") 
@@ -147,35 +140,27 @@ bia    = readRDS("./rds/bia.rds")
 ###################################################################################################
 # Summary of outputs ----
 
-# s.models.tops         = readRDS(paste0(heavies.rds.path,"s.models.tops.rds")) # no longer exists
-s.ensembles           = readRDS(paste0(heavies.rds.path,"s.ensembles.rds"))
-# s.ensemble.thresholds = readRDS(paste0(heavies.rds.path,"s.ensemble.thresholds.rds"))
-s.ensemble.dist       = readRDS(paste0(heavies.rds.path,"s.ensemble.dist.rds"))
+ensembles           = readRDS(paste0(B.heavies.rds.path, "ensembles.rds"))
+ensemble.thresholds = readRDS("./rds/ensemble.thresholds.rds")
+ensemble.dist       = readRDS(paste0(B.heavies.rds.path,"ensemble.dist.rds"))
+
+rcurves             = readRDS(paste0(B.heavies.rds.path,"rcurves.rds"))
+
+
 
 #variable importance by model and combination
-varimportance.rf    = readRDS(paste0(heavies.rds.path,"s.varimportance.rf.rds"))
-varimportance.svm   = readRDS(paste0(heavies.rds.path,"s.varimportance.svm.rds"))
-varimportance.gam   = readRDS(paste0(heavies.rds.path,"s.varimportance.gam.rds"))
-varimportance       = readRDS(paste0(heavies.rds.path,"s.varimportance.rds"))
+varimportance.rf    = readRDS(paste0(B.heavies.rds.path,"s.varimportance.rf.rds"))
+varimportance.svm   = readRDS(paste0(B.heavies.rds.path,"s.varimportance.svm.rds"))
+varimportance.gam   = readRDS(paste0(B.heavies.rds.path,"s.varimportance.gam.rds"))
+varimportance       = readRDS(paste0(B.heavies.rds.path,"s.varimportance.rds"))
 
 # variable importanct averaged across combos
 var.importance      = readRDS("./rds_objects/s.var.importance.rds")
 var.importance.df   = readRDS("./rds_objects/s.var.importance.df.rds") 
-rcurves             = readRDS(paste0(heavies.rds.path,"s.rcurves.rds"))
+rcurves             = readRDS(paste0(B.heavies.rds.path,"s.rcurves.rds"))
 
-# note: since 3/08/2019, have decided on a better model configuration than the original: veg excluded 
-# (unreliable/incomplete), presence-absence models only, and complete datasets only (no survey-only). 
-# This means that there are only two scenarios: with and without the unreliable collections data. See sdm.7b.
-
-s.preds.noveg      = readRDS(paste0(heavies.rds.path,"s.preds.noveg.rds"))
-s.data.packs.noveg = readRDS(paste0(heavies.rds.path,"s.data.packs.noveg.rds"))
-
-s.eval.list.noveg       = readRDS("./rds_objects/s.eval.list.noveg.rds")   # 'raw' list of full eval data from each combo
-s.eval.summary.noveg    = readRDS("./rds_objects/s.eval.summary.noveg.rds")  # consolidated list (multi reps averaged)
-s.eval.summary.df.noveg = readRDS("./rds_objects/s.eval.summary.df.noveg.rds") # consolidated table (all combos together)
-
-grand.ensemble    = raster(paste0(heavies.spatial.path, "s.grandensemble.noveg.tif")); plot(grand.ensemble)
-grand.distribution = raster(paste0(heavies.spatial.path, "s.grand.distribution.noveg.tif"))
+grand.ensemble      = raster(paste0(B.heavies.spatial.path, "grandensemble.tif")); plot(grand.ensemble)
+grand.distribution  = raster(paste0(B.heavies.spatial.path, "grand.distribution.tif"))
 
 ###################################################################################################
 # Create models for each combo, just with the top algorithms ----
@@ -200,14 +185,17 @@ for (i in 1:length(scenario.names))                                             
   for (a in 1:length(top.algs.l)){
     weights[[a]] = eval.summary[[i]]$TSS[eval.summary[[i]]$method == top.algs[[a]]]}
   
-  filename = paste0(B.heavies.spatial.path,'Birulaltus ensemble - ', scenario.names[[i]], '.tif')
-  ensembles[[i]] = ensemble(modelset[[i]], newdata = preds.nocoll, filename = filename, 
+  filename = paste0(B.heavies.spatial.path,'Birulatus ensemble - ', scenario.names[[i]], '.tif')
+  ensembles[[i]] = ensemble(modelset[[i]], newdata = preds.l.nocoll, filename = filename, overwrite=TRUE, 
                             setting = list(method = 'weighted', weights = unlist(weights)), 
-                            nc=20, format="GTiff", overwrite=T)  
+                            nc=20, format="GTiff")  
   print(paste(scenario.names[[i]]," loop took ", difftime(Sys.time(), start.time, units="mins")," minutes")) }
 
 saveRDS(ensembles, paste0(B.heavies.rds.path, "ensembles.rds"))
-emailme()
+emailme(); beep()
+
+# or load previously-made version:
+ensembles           = readRDS(paste0(B.heavies.rds.path, "ensembles.rds"))
 
 ###################################################################################################
 # Map ensemble distributions (within-scenario ensembles) ----
@@ -237,13 +225,13 @@ for (i in 1:length(scenario.names)) {   # takes ~ 3 minutes
   hist(ensembles[[i]]);  points(x = ensemble.thresholds[[i]], y=0, pch=24, bg='red')
   dev.off()
   
-  # make distribution image:
+  # make multitone distribution image (showing different levels of probability of occurrence):
   plot.filename  = paste0(B.heavies.image.path,'Ensemble distribution - ', scenario.names[[i]], '.png')
   par(mar = c(2,2,2,0), mgp=c(2,0.5,0)) # , bty="n"
-  png(filename = plot.filename, width = 14, height = 25, units = 'cm', res = 900)
-  plot(ensemble.dist[[i]], xlim=c(35.14091, 35.86199), ylim=c(31.59407, 33.00494),
+  png(filename = plot.filename, width = 16, height = 25, units = 'cm', res = 900)
+  plot(ensemble.dist[[i]], xlim=c(35.14, 35.87), ylim=c(31.4, 33.2),
        main = "Predicted Birulatus distribution, using an ensemble of 4 modelling approaches", cex.main=0.7) 
-  lines(birulatus.study)
+  lines(bir.area)
   lines(israel.WB, col="grey", lty=5, lwd=2)
   points(bi[bi$occurrence == 1,],col='blue',pch=16, cex=0.7)
   points(bi[bi$occurrence == 0,],col='red',pch=16, cex=0.7)
@@ -269,14 +257,42 @@ for (i in 1:length(scenario.names)) {   # takes ~ 3 minutes
               filename = paste0(B.heavies.spatial.path,'Ensemble distribution unitone - ',scenario.names[[i]], '.tif'),
               options=c('TFW=YES'), overwrite= TRUE)
   # unsure if the following doesn't work or is just super slow:
-  distribution.poly = rasterToPolygons(ensemble.dist.unitone, digits=12, na.rm=TRUE,dissolve=T); plot(distribution.poly)
+  # distribution.poly = rasterToPolygons(ensemble.dist.unitone, digits=12, na.rm=TRUE,dissolve=T); plot(distribution.poly)
+  
+  # make unitone distribution image:
+  plot.filename  = paste0(B.heavies.image.path,'Ensemble distribution - ', scenario.names[[i]], '_unitone.png')
+  par(mar = c(2,2,2,0), mgp=c(2,0.5,0)) # , bty="n"
+  png(filename = plot.filename, width = 16, height = 25, units = 'cm', res = 900)
+  plot(ensemble.dist.unitone[[i]], xlim=c(35.14, 35.87), ylim=c(31.4, 33.2),
+       main = "Predicted Birulatus distribution, using an ensemble of 4 modelling approaches", cex.main=0.7) 
+  lines(bir.area)
+  lines(israel.WB, col="grey", lty=5, lwd=2)
+  points(bi[bi$occurrence == 1,],col='blue',pch=16, cex=0.7)
+  points(bi[bi$occurrence == 0,],col='red',pch=16, cex=0.7)
+  lines(groads, col="grey73")
+  points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
+  select.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
+  points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
+  with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  with(select.towns, text(select.towns$lat~select.towns$lon, labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
+  legend("bottomright",c("Presence (83 observations)", "Absence (98 observations)"), col=c("blue","red"),pch=16,cex=.7)
+  
+  # alternatively: plot(s.predmaps.rf[[i]], col = c('white','green'), breaks=c(0, s.threshold.rf,1))
+  dev.off()
   
   print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
 
+# need to figure out how to convert to polygon, and also to convert to KML (either from polygon or raster)
+
 saveRDS(ensemble.thresholds, "./rds/ensemble.thresholds.rds")
 saveRDS(ensemble.dist, paste0(B.heavies.rds.path,"ensemble.dist.rds"))
+
+# or load previously made versions:
+ensemble.thresholds = readRDS("./rds/ensemble.thresholds.rds")
+ensemble.dist       = readRDS(paste0(B.heavies.rds.path,"ensemble.dist.rds"))
+
 ###################################################################################################
-# Map pairs of predictions to elucidate data effects ----
+# Map pairs of predictions to elucidate data effects (Legacy) ----
 myLetters <- letters[1:26] # setting up letter-number correlation. e.g. match("a", myLetters)
 
 # 1) The effect of the unreliable collections records ----
@@ -287,11 +303,11 @@ numbers   = list(match(combos[[1]], myLetters), match(combos[[2]], myLetters),
 rasters = list() # temporary list only
 meanTSS = list() # temporary list only
 
-png(filename = paste0(heavies.image.path,"Schreiberi scenario comparisons - positional uncertainty new.png"), 
+png(filename = paste0(B.heavies.image.path,"Schreiberi scenario comparisons - positional uncertainty new.png"), 
     width=30, height=16, units='cm', res=900)
 par(mfrow=c(1,4), mar =c(0.25,0,1,0), bty="n")
 for (i in 1:length(combos)) {
-  rasters[[i]] = raster(paste0(heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario ",
+  rasters[[i]] = raster(paste0(B.heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario ",
                                toupper(combos[[i]]),".tif"))
   number = numbers[[i]]
   meanTSS[[i]] = round(mean(s.eval.summary[[number]]$TSS[c(1,2,3)]), digits=2)
@@ -320,11 +336,11 @@ numbers   = list(match(combos[[1]], myLetters), match(combos[[2]], myLetters),
 rasters = list() # temporary list only
 meanTSS = list() # temporary list only
 
-png(filename = paste0(heavies.image.path,"Schreiberi scenario comparisons - unbalanced PA vs balanced PO.png"), 
+png(filename = paste0(B.heavies.image.path,"Schreiberi scenario comparisons - unbalanced PA vs balanced PO.png"), 
     width=30, height=16, units='cm', res=900)
 par(mfrow=c(1,4), mar =c(0.25,0,1,0), bty="n")  # mfrow=c(nrows, ncols)
 for (i in 1:length(combos)) {
-  rasters[[i]] = raster(paste0(heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario "
+  rasters[[i]] = raster(paste0(B.heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario "
                                ,toupper(combos[[i]]),".tif"))
   number = numbers[[i]]
   meanTSS[[i]] = round(mean(s.eval.summary[[number]]$TSS[c(1,2,3)]), digits=2)
@@ -354,11 +370,11 @@ numbers   = list(match(combos[[1]], myLetters), match(combos[[2]], myLetters),
 rasters = list() # temporary list only
 meanTSS = list() # temporary list only
 
-png(filename = paste0(heavies.image.path,"Schreiberi scenario comparisons - all scenarios.png"), 
+png(filename = paste0(B.heavies.image.path,"Schreiberi scenario comparisons - all scenarios.png"), 
     width=45, height=16, units='cm', res=1200)
 par(mfrow=c(1,6), mar =c(0.25,0,1,0), bty="n")
 for (i in 1:length(combos)) {
-  rasters[[i]] = raster(paste0(heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario ",
+  rasters[[i]] = raster(paste0(B.heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario ",
                                toupper(combos[[i]]),".tif"))
   number = numbers[[i]]
   meanTSS[[i]] = round(mean(s.eval.summary[[number]]$TSS[c(1,2,3)]), digits=2) # TSS rows were c(3,5,9)
@@ -387,11 +403,11 @@ numbers = list(match(combos[[1]], myLetters), match(combos[[2]], myLetters)) # t
 rasters = list() # temporary list only
 meanTSS = list() # temporary list only
 
-png(filename = paste0(heavies.image.path,"schreiberi/Schreiberi scenario comparisons - both noveg scenarios.png"), 
+png(filename = paste0(B.heavies.image.path,"schreiberi/Schreiberi scenario comparisons - both noveg scenarios.png"), 
     width=15, height=16, units='cm', res=1200)
 par(mfrow=c(1,2), mar =c(0.25,0,1,0), bty="n")
 for (i in 1:length(combos)) {
-  rasters[[i]] = raster(paste0(heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario ",
+  rasters[[i]] = raster(paste0(B.heavies.spatial.path,"Ensemble distribution - Schreiberi Scenario ",
                                toupper(combos[[i]]),".tif"))
   number = numbers[[i]]
   meanTSS[[i]] = round(mean(s.eval.summary[[number]]$TSS[c(1,2,3)]), digits=2) # TSS rows were c(3,5,9)
@@ -418,12 +434,14 @@ modelset        = model.list.complete
 rcurves = list()
 
 i=1 # for some reason this for-loop doesn't produce viable images! but running each iteration manually does.
-#for (i in 1:length(scenario.names))       {
+# 11/05/2020: even the code didn't work, I had to manually save from the plot window.
+# for (i in 1:length(scenario.names))       {
 filename = paste0(B.heavies.image.path,'Mean response curves - ', scenario.names[[i]], '.png')
 title = paste0("Response curves for ", scenario.names[[i]])
 rcurves[[i]] = rcurve(modelset[[i]], id=1:4, mean=TRUE, confidence=TRUE, smooth=T, main=title, size=1000)
 
-png(filename = filename, width = 18, height = 8, units = 'cm', res = 600)
+png(filename = paste0(B.heavies.image.path,'Response curves - scenario A - lithology & study area.png'), # preset file name not working. 
+    width = 18, height = 8, units = 'cm', res = 600)
 par(mar=c(0,0,1,0))
 curve = rcurve(modelset[[i]], id=1:4, mean=T, confidence=TRUE, smooth=T, 
                main=scenario.names[[i]], size=1000, main.cex=0.5, gg=T)
@@ -431,24 +449,25 @@ curve + theme(axis.text.x = element_blank(), axis.text.y=element_blank(),
               axis.title.x=element_blank(), legend.position="none", panel.background=element_blank(), 
               panel.grid.major=element_blank(), plot.background=element_blank())
 dev.off()                                  
-#}
+# }
 
-png(filename = paste0(heavies.image.path,"S mean response curves - all scenarios.png"), 
-    width=30, height=36, units="cm", res=600)
-par(mar = c(0,0,0,0), mgp=c(0,0,0))
-plot(0:6, 0:6, type = "n", xaxt = "n", yaxt = "n", xlab = "", ylab = "")
-rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario A.png')), 0,5,6,6)
-rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario B.png')), 0,4,6,5)
-rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario C.png')), 0,3,6,4)
-rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario D.png')), 0,2,6,3)
-rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario E.png')), 0,1,6,2)
-rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario F.png')), 0,0,6,1)
-dev.off()
+# legacy code for making a composite image of multiple sets of response curves from different scenarios:
+# png(filename = paste0(B.heavies.image.path,"S mean response curves - all scenarios.png"), 
+#     width=30, height=36, units="cm", res=600)
+# par(mar = c(0,0,0,0), mgp=c(0,0,0))
+# plot(0:6, 0:6, type = "n", xaxt = "n", yaxt = "n", xlab = "", ylab = "")
+# rasterImage(readPNG(source= paste0(heavies.image.path,'Mean response curves - Schreiberi scenario A.png')), 0,5,6,6)
+# rasterImage(readPNG(source= paste0(B.heavies.image.path,'Mean response curves - Schreiberi scenario B.png')), 0,4,6,5)
+# rasterImage(readPNG(source= paste0(B.heavies.image.path,'Mean response curves - Schreiberi scenario C.png')), 0,3,6,4)
+# rasterImage(readPNG(source= paste0(B.heavies.image.path,'Mean response curves - Schreiberi scenario D.png')), 0,2,6,3)
+# rasterImage(readPNG(source= paste0(B.heavies.image.path,'Mean response curves - Schreiberi scenario E.png')), 0,1,6,2)
+# rasterImage(readPNG(source= paste0(B.heavies.image.path,'Mean response curves - Schreiberi scenario F.png')), 0,0,6,1)
+# dev.off()
 
 # note: use getResponseCurve() at https://rdrr.io/cran/sdm/man/response.html to extract the actual data and plot more nicely (time consuming).
 # use rcurve(b.model.list.tops[[1]], id=1, smooth = T, main = "whatever") to plot individual models.
 
-saveRDS(rcurves, paste0(heavies.rds.path,"rcurves.rds"))
+saveRDS(rcurves, paste0(B.heavies.rds.path,"rcurves.rds"))
 ###################################################################################################
 # Plot variable importance ----
 
@@ -464,6 +483,20 @@ saveRDS(rcurves, paste0(heavies.rds.path,"rcurves.rds"))
 
 var.importance = getVarImp(modelset[[i]], id=c(1:4), wtest='training', varImportance='tss')
 plot(var.importance)
+
+# getting variable importance averaged across all models, from the development version of sdm 
+# (Babak's emailed instructions):
+devtools::install_github('babaknaimi/sdm', force = TRUE)
+
+i = 1
+vi <- sdm::getVarImp(modelset[[i]], id=1:4, varImportance='tss') # the modelIDs of 1:10
+
+plot(vi)
+plot(vi, 'tss', col="darkgreen")
+
+vi
+str(vi)
+# nice! and has error bars! but I don't know how to extract the tss variable importance data, nor change the order, so going back to claculating the average manually:
 
 varimportance.rf  = list()
 varimportance.brt = list()
@@ -504,24 +537,25 @@ for (i in 1:length(scenario.names))                                             
                                                            varimportance.svm[[i]]@varImportance$AUCtest[5],
                                                            varimportance.gam[[i]]@varImportance$AUCtest[5]))))
 
-  order = (rev(c(2,4,1,5,3)))  # Get order of rows as determined by overall average importance (below) # removed rev()
+  order = (rev(c(5,4,1,2,3)))  # Get order of rows as determined by overall average importance (below) # removed rev()
   varimportance[[i]] <- varimportance[[i]][order,]      # sort
 
-  title    = paste0("Variable importance for the ", scenario.names[[i]])
-  filename = paste0(B.heavies.image.path,'Variable importance - ', scenario.names[[i]], '.png')
-  png(filename = filename, width = 18, height = 10, units = 'cm', res = 600)
+  # title    = paste0("Variable importance for ", scenario.names[[i]]) # for when I have multiple scenarios
+  title = "Variable importance averaged across the four top models"
+  # filename = paste0(B.heavies.image.path,'Variable importance - ', scenario.names[[i]], '.png') # didn't work when file name was specified seperately.
+  png(filename = paste0(B.heavies.image.path,'Mean variable importance.png'), width = 18, height = 10, units = 'cm', res = 600)
   # par(mar = c(5.1, 4.1, 4.1, 2.1)) # the default.
-  par(mar = c(3, 8.5, 3, 0)) # sets the bottom, left, top and right margins respectively, in number of lines of text.
+  par(mar = c(3, 8.5, 3, 0.5)) # sets the bottom, left, top and right margins respectively, in number of lines of text.
   barplot(varimportance[[i]]$importance, 
         names.arg = varimportance[[i]]$variable, xlab = "Variable importance averaged across the four top models",
         main=title, horiz=TRUE, cex.names=0.8, las=1, mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.2, 
-        col='lightgreen', xlim=c(0,0.28)) 
+        col='lightgreen', xlim=c(0,0.3)) 
   dev.off()                                                                                                     }
 
-saveRDS(varimportance.rf,  paste0(heavies.rds.path, "s.varimportance.rf.rds"))
-saveRDS(varimportance.svm, paste0(heavies.rds.path, "s.varimportance.svm.rds"))
-saveRDS(varimportance.gam, paste0(heavies.rds.path, "s.varimportance.gam.rds"))
-saveRDS(varimportance,     paste0(heavies.rds.path, "s.varimportance.rds"))
+saveRDS(varimportance.rf,  paste0(B.heavies.rds.path, "varimportance.rf.rds"))
+saveRDS(varimportance.svm, paste0(B.heavies.rds.path, "varimportance.svm.rds"))
+saveRDS(varimportance.gam, paste0(B.heavies.rds.path, "varimportance.gam.rds"))
+saveRDS(varimportance,     paste0(B.heavies.rds.path, "varimportance.rds"))
 
 # Total variable importance, averaged over all models ----
 #varimportance[[1]]@varImportance$AUCtest[1] 
@@ -550,7 +584,7 @@ var.importance.allcombos.df$mean = rowMeans(var.importance.allcombos.df[,c("scen
 order <- order(var.importance.allcombos.df$mean)              # Get order of rows, for plotting in order
 var.importance.allcombos.df <- var.importance.allcombos.df[order,]      # sort
 
-png(paste0(heavies.image.path,"schreiberi/S variable importance - averaged across both nonveg.png"), 
+png(paste0(B.heavies.image.path,"schreiberi/S variable importance - averaged across both nonveg.png"), 
            width = 18, height = 10, units = 'cm', res = 600)
 # par() #default is 5.1 4.1 4.1 2.1
 par(mar=c(3,4.5,3,1.5))
@@ -560,8 +594,8 @@ barplot(var.importance.allcombos.df$mean,
         mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.6, col='lightblue')
 dev.off()
 
-saveRDS(var.importance.allcombos,    "./rds_objects/s.var.importance.rds")
-saveRDS(var.importance.allcombos.df, "./rds_objects/s.var.importance.df.rds")
+saveRDS(var.importance.allcombos,    "./rds_objects/var.importance.rds")
+saveRDS(var.importance.allcombos.df, "./rds_objects/var.importance.df.rds")
 
 ###################################################################################################
 # The grand ensemble, etc. ----

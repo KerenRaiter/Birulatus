@@ -72,9 +72,9 @@ ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000
 ########################################################################################################
 # Datasets prepared earlier ----
 # from this script:
-eval.list       = readRDS("./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
-eval.summary    = readRDS("./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
-eval.summary.df = readRDS("./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
+eval.list       = readRDS(paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))       # 'raw' list of eval data from each model
+eval.summary    = readRDS(paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
+eval.summary.df = readRDS(paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
 methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
 top.algorithms  = c('rf','brt','svm','gam')
 
@@ -155,25 +155,18 @@ for (i in 1:length(data_packages))                                              
   model.list.cv.100n[[i]] = sdm.cv(data)  
   print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
 
-# saveRDS(model.list.cv.100n, "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
+# saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
+beep()
 emailme()
   
 # # see how they went:
 # scenario.names[[1]]; model.list.cv.100n[[1]]
-# scenario.names[[2]]; model.list.cv.100n[[2]]
-# scenario.names[[3]]; model.list.cv.100n[[3]]
-# scenario.names[[4]]; model.list.cv.100n[[4]]
-# scenario.names[[5]]; model.list.cv.100n[[5]]
-# scenario.names[[6]]; model.list.cv.100n[[6]]
-# scenario.names[[7]]; model.list.cv.100n[[7]]
-# scenario.names[[8]]; model.list.cv.100n[[8]]
-# scenario.names[[9]]; model.list.cv.100n[[9]]
 
 # save and/or retreive
-# saveRDS(model.list.cv.100n,  "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
+# saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
 
 # or retreive from saved to prevent running the above code:
-# model.list.cv.100n  = readRDS( "//vscifs.cc.huji.ac.il/eeb/HawlenaLab/keren/R/sdm_heavies/rds/model.list.cv.100n.rds")
+# model.list.cv.100n  = readRDS(paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
 
 ########################################################################################################
 # Summarise model evaluations by methods for each scenario -----
@@ -181,6 +174,7 @@ eval.list = list() # evaluation data by model (i.e. 4500 models:100reps x5 folds
 eval.summary = list() # list of evaluation data, averaged by alg (i.e. 9 dataframes of 9 rows:9 scenarios X 9 algs)
 
 modelset = model.list.cv.100n # to prevent having to repeat this multiple times in the code below:
+
 for (i in 1:length(modelset))                                 {
   model.inf.ev = NULL
   # extract model info and eval statistics and merge them (change name of model list as appropriate):
@@ -210,11 +204,11 @@ eval.summary.df = do.call("rbind", eval.summary) # converting the list to a sing
 
 
 # saving the outputs from the 5-fold, 100-replicate run evaluation
-saveRDS(eval.list,       "./rds/s.eval.list.topmethods.rds")       # 'raw' list of eval data from each model
-saveRDS(eval.summary,    "./rds/s.eval.summary.topmethods.rds")    # consolidated: multiple reps averaged
-saveRDS(eval.summary.df, "./rds/s.eval.summary.df.topmethods.rds") # superconsolidate:all scenarios, 1 table)
-write.xlsx(eval.summary,    "./data/model evaluation summary.xlsx") # export to excel sprdsheet
-write.xlsx(eval.summary.df, "./data/model evaluation summary onetable.xlsx")
+saveRDS(eval.list,       paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))      # 'raw' list of eval data from each model
+saveRDS(eval.summary,    paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
+saveRDS(eval.summary.df, paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
+write.xlsx(eval.summary,    paste0(B.heavies.rds.path, "model evaluation summary.xlsx")) # export to excel sprdsheet
+write.xlsx(eval.summary.df, paste0(B.heavies.rds.path, "model evaluation summary onetable.xlsx"))
 
 # Plot relationship between TSS and AUC
 AUC_ordered = ordered(eval.summary.df$AUC)
@@ -223,14 +217,14 @@ TSS_upper = eval.summary.df$TSS + eval.summary.df$TSS_sd
 
 r = ggplot(eval.summary.df, aes(x=AUC, y=TSS, color = scenario)) + geom_point() 
 r
-cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.9801016
+cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.98
 
 ########################################################################################################
 # Definining 'top' algorithims for future focus ----
 # I'm going to use TSS to define the topmodels - we have already seen that this is highly correlated with AUC.
 # To my knowledge; can't extract top models but can specify which ones to use when drawing ROC curves and running ensembles.
 
-# Approach 1: selecting by average TSS and AUC values (the one I'm using) ----
+# Selecting by average TSS and AUC values ----
 methods.summary = aggregate(model.inf.ev[, c("TSS", "AUC")], # improved from shnunit version, aggregates original list
                             model.inf.ev["method"], function(x) c(mean=mean(x), sd=sd(x)) )
 methods.summary$TSS.sd = methods.summary$TSS[,2]
@@ -251,14 +245,16 @@ saveRDS(methods.summary, "./rds/methods.summary.rds")
 # plot TSS by method, with error bars:
 palette(c("red","magenta","blue","cyan","green3","brown","gray","purple","yellow")) # adding&changing colour palette (default has 8 only)
 algorithm = 1:9
+
 lower.end = methods.summary$TSS.mean - methods.summary$TSS.sd
 upper.end = methods.summary$TSS.mean + methods.summary$TSS.sd
 
+par(mfrow = c(1,1))
 png(filename = paste0(B.heavies.image.path,"Comparing algorithm performance by TSS.withbars.png"), 
     width=14, height=8, units='cm', res=300)
 par(mgp=c(2,0.5,0),mar=c(3,3,0,0)+0.1)
 plot(methods.summary$TSS[,1], bg=methods.summary$method, pch=21, cex=1.5, 
-     ylim=range(c(lower.end,upper.end)),xlim=c(1,9.5), xlab="Algorithm",xaxt='n',ylab="Average TSS")
+     ylim = range(c(lower.end, upper.end)),xlim=c(1,9.5), xlab="Algorithm",xaxt='n',ylab="Average TSS")
 with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary),
                            labels=methods.summary$method, pos=4, cex=0.9, offset=0.35))
 #legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), pt.bg=c(1:9),pch=21,cex=1.5,text.font=1)
@@ -267,11 +263,15 @@ points(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.4) # j
 dev.off()
 
 # plot without error bars:
+
+lower.end = min(methods.summary$TSS.mean)
+upper.end = max(methods.summary$TSS.mean)
+
 png(filename = paste0(B.heavies.image.path,"Comparing algorithm performance by TSS.nobars.png"), 
     width=14, height=8, units='cm', res=300)
 par(mgp=c(2,0.5,0),mar=c(3,3,0,0))
 plot(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5, xlab="Algorithm",xaxt='n',ylab="Average TSS",
-     ylim=c(0.44,0.66), xlim=c(1,9.5))
+     ylim=c(0.44,0.78), xlim=c(1,9.5))
 with(methods.summary, text(methods.summary$TSS.mean ~ rownames(methods.summary), 
                            labels = methods.summary$method, pos = 4, cex=1))
 # legend("topright",c("rf","svm","gam","brt","mda","cart","rpart","glm","fda"),pt.bg=c(1:9), pch=21,cex=1.5,text.font=1)
@@ -283,7 +283,8 @@ dev.off()
 png(filename = paste0(B.heavies.image.path,"Variability of algorithm performance.png"), 
     width=20, height=12, units='cm', res=600)
 plot(methods.summary$TSS.mean, methods.summary$TSS.sd, pch=21, bg=methods.summary$method, 
-     xlab="Algorithm average performance (mean TSS)", ylab="Performance variability (TSS standard deviation)", xlim=c(0.46,0.655))
+     xlab="Algorithm average performance (mean TSS)", ylab="Performance variability (TSS standard deviation)", 
+     xlim=c(0.48,0.785), ylim = c(0.09, 0.14))
 points(methods.summary$TSS.mean[methods.summary$method == "rf"], methods.summary$TSS.sd[methods.summary$method == "rf"],
        pch=21, bg= "green3", cex=1.5)
 points(methods.summary$TSS.mean[methods.summary$method == "svm"], 
@@ -296,56 +297,15 @@ with(methods.summary, text(methods.summary$TSS.sd ~ methods.summary$TSS.mean,
                            labels = methods.summary$method, pos = 4, cex=1))
 # legend("bottomleft", c("cart","fda","gam","brt","rf","glm","mda","rpart","svm"), pt.bg=c(1:9), pch=21, cex=1.1)
 dev.off()
-# Performance of the top 3 methods is as consistent as any other methods. The SD of TSS for RF models in particularly low.
+# Performance of the top 3 methods is as consistent as any other methods. The SD of TSS for the top RF models in particularly low.
 
-# Approach 2: select top algorithms by frequency in top 5 list (by TSS) for each scenario (obsolete) ----
-
-# Extract and order top 5 models from each scenario:
-top5 = list()
-for (i in 1:length(eval.summary))                   {
-  top5[[i]] = eval.summary[[i]][rank(eval.summary[[i]]$TSS)>=5,]
-  top5[[i]] = top5[[i]][order(-top5[[i]]$TSS),]       }
-
-top5_df = do.call("rbind", top5)
-
-# extract how many times each method appears in the top 5:
-methods = list("cart","fda","gam","brt","rf","glm","mda","rpart","svm")
-methods.points = list()
-for (i in 1:length(methods))                                                                 {
-  methods.points[[i]] = data.frame(method = methods[[i]],   # number of times appeared in top five is named 'points'.
-                                   points = length(which(top5_df$method == methods[[i]])))  }
-methods.points.df = do.call("rbind", methods.points)
-(methods.points.df = methods.points.df[order(-methods.points.df$points),] )
-# gam, brt, rf, and svm all performed equally well, all appearing in all of the top 5s for each scenario.
-
-# Approach 3: get all methods above certain TSS and AUC levels (obsolete) ----
-
-TSS_topmods_methods = list()
-AUC_topmods_methods = list()
-for (i in 1:9)                                                                     {
-  TSS_topmods_methods[[i]] = paste(subset(eval.summary[[i]], TSS > 0.5)$method)
-  AUC_topmods_methods[[i]] = paste(subset(eval.summary[[i]], AUC > 0.755)$method)   } # or use AUC = 0.7811
-
-# comparing the top models according to TSS versus AUC:
-i=1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i=i+1
-print(paste('Model combination ',i)); TSS_topmods_methods[[i]]; AUC_topmods_methods[[i]]; i = 1
-# When TSS threshold is 0.5 and AUC threshold is 0.7, in some cases AUC is more generous (considers more models to be 'top'), in some cases the two indicators indicate the same set of 'top' methods.
-# if AUC threshold is increased to 0.7811, then the methods considered 'top' by both methods are almost identical (once I remove glmnet).
-
+# maybe obsolete:
 # to plot ROC curves of topmodels:
 roc(model.list.cv.100n[[i]][1], method = TSS_topmods_methods[[i]], smooth = T, cex.lab = 0.7, cex.main = 0.8, pin= c(5.5, 5.3))
 
 # Outputs from top model selection ----
-write.xlsx(methods.summary, "./output_data/model evaluation summary (aggregated by method)2.xlsx")
-# top models are rf, SVM, and gam
+write.xlsx(methods.summary, "./data/model evaluation summary (aggregated by method).xlsx")
+# top models are RF, BRT, SVM, and GAM (CART is up there too, but so similar to BRT, not considered to add much)
 
 ########################################################################################################
 # the code below here is legacy...

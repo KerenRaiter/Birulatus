@@ -893,3 +893,9 @@ d <- distm(sp.mydata)
 
 # rest is the same
 # This should provide better results, if the points are scattered across the globe and coordinates are in degrees
+
+#####
+# Round up to the nearest power of ten ----
+
+roundUp <- function(x) 10^ceiling(log10(x))
+roundUp(c(0.0023, 3.99, 10, 1003)) # also works on a vector
