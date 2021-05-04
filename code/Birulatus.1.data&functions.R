@@ -1,6 +1,5 @@
 # Birulatus 1: data and functions (& things to do) ----
 
-# 2. organise layers for import
 # 3. organise point data for import.
 
 #######################################################################################################################
@@ -65,9 +64,11 @@ ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
+plot(borders); lines(israel.WB.merged, col = "green", lwd = 4); lines(israel.noWB, col="blue")
 
-bir.area    = readRDS("rds/bir.area.rds") # study area
-bir.area.s  = readRDS("rds/bir.area.s.rds") # study area
+bir.area    = readRDS("rds/bir.area.rds")   # study area
+bir.area.s  = readRDS("rds/bir.area.s.rds") # study area limited to where there is soils info
+plot(bir.area, lwd = 5, col = "brown"); lines(bir.area.s, col = "yellow")
 xlims = c(35.14081, 35.86214)
 ylims = c(31.59407, 33.00496)
 
@@ -79,7 +80,7 @@ villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
 
-raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds")); plot(raster.list.l[[1]])
 raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
 raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
@@ -124,13 +125,13 @@ firing_excl_alllanduse        = readRDS(paste0(heavies.rds.path,"firing_excl_all
 # Importing reference datasets and study area boundaries ----
 
 # Country borders ----
-borders   = readOGR(dsn="E:/GIS working/layers/borders",layer="borders_simple_WGS") # no extension for readOGR function
+borders   = readOGR(dsn="E:/GIS working/layers/borders",layer="Israel_simple_WGS") # no extension for readOGR function
 plot(borders) 
 
-israel.WB = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_WB_landandwatermerged_WGS")
+israel.WB = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_&_WB_landandwatermerged_WGS")
 plot(israel.WB)
 
-israel.WB.merged = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_WB_merged_landandwatermerged_WGS")
+israel.WB.merged = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_&_WB_merged_landandwatermerged_WGS")
 plot(israel.WB.merged)
 
 israel.WB.no.water = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_&_West_Bank_minuswaterbodies_WGS")
@@ -151,7 +152,7 @@ plot(bir.area)
 saveRDS(bir.area, "./rds/bir.area.rds")
 
 bir.area.s = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_soils") # reduced
-plot(soil, ylim=c(32.7,33), xlim=c(35.5,36)); lines(bir.area.s) # zzoming in on area of interest.
+plot(soil, ylim=c(32.7,33), xlim=c(35.5,36)); lines(bir.area.s) # zooming in on area of interest.
 saveRDS(bir.area.s, "./rds/bir.area.s.rds")
 
 # Cities and other population centres etc ----
@@ -182,7 +183,7 @@ saveRDS(villages, "./rds/villages.rds")
 groads = readOGR(dsn="E:/GIS working/layers/infrastructure/gROADS-v1-europe.gdb",layer="groads_israel"); plot(groads)  
 saveRDS(groads, "./rds/groads.rds")
 
-# Landuse data ----
+# Land-use data ----
 # nat.res   = readOGR(dsn="E:/GIS working/layers/planning and landuse/planning_landuse.gdb",layer="Nature_reserves") 
 # nat.park  = readOGR(dsn="E:/GIS working/layers/planning and landuse/planning_landuse.gdb",layer="national_parks_WGS")
 # saveRDS(nat.res, paste0(heavies.rds.path,"nat.res.rds"))
@@ -198,8 +199,8 @@ saveRDS(groads, "./rds/groads.rds")
 # saveRDS(kkl.plans.b,  paste0(heavies.rds.path,"kkl.plans.b.rds"))
 # saveRDS(kkl.plans,    paste0(heavies.rds.path,"kkl.plans.rds"))
 
-par(mar=c(0,0,0,0)); plot(kkl.plans.b, col="pink",border="pink"); plot(kkl.plans.a, add=T, col="red",border="red")
-plot(kkl.forestry, add = T, col="brown",border="brown")
+# par(mar=c(0,0,0,0)); plot(kkl.plans.b, col="pink",border="pink"); plot(kkl.plans.a, add=T, col="red",border="red")
+# plot(kkl.forestry, add = T, col="brown",border="brown")
 
 # landuse.unsimplified = readOGR(dsn="E:/GIS working/layers/planning and landuse",layer="Landuse_master")
 # landuse              = readOGR(dsn="E:/GIS working/layers/planning and landuse",layer="Landuse_simplified")
@@ -254,75 +255,14 @@ plot(kkl.forestry, add = T, col="brown",border="brown")
 # simplifying dataset with rmshaper doesn't work, did in ArcGIS instead:
 # landuse_simple = rmapshaper::ms_simplify(landuse_b, keep = 0.2, keep_shapes = TRUE)
 
-{# b.disturbed <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="disturbance_b_diss") 
-# saveRDS(b.disturbed, paste0(heavies.rds.path,"b.disturbed.rds"))
-# b.disturbed = readRDS(paste0(heavies.rds.path,"b.disturbed.rds"))
-# This version has an issue in that there are 'uncategorized' polygons that overlay 'categorised' ones. 
-# But I can manage it - just plot the uncategorized layer at the bottom.
-# b.disturbed.sp <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="merged_disturbance_beershebensis_sp") 
-# this is the improved version but I need to dissolve it before it is usable - at the moment it is extremely slow to plot.
-} # obsolete merged disturbance layer
 
-
-{
-# builtup <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="built_up_areas_updated2") 
-# plot(builtup)
-# saveRDS(builtup, paste0(heavies.rds.path,"builtup.rds"))
-# 
-# agriculture <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="agriparcels_dissolve") 
-# plot(agriculture)
-# saveRDS(agriculture, paste0(heavies.rds.path,"agriculture.rds"))
-# 
-# dmt_uncat <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="DMT16_admin_divisions_dist_uncat") 
-# plot(dmt_uncat)
-# saveRDS(dmt_uncat, paste0(heavies.rds.path,"dmt_uncat.rds"))
-# 
-# dmt_bu_ag_plntn <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="DMT16_landcover_bu_ag_plntn") 
-# plot(dmt_bu_ag_plntn)
-# saveRDS(dmt_bu_ag_plntn, paste0(heavies.rds.path,"dmt_bu_ag_plntn.rds"))
-# 
-# INPA_dist <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="INPA_landcover_categories_disturbed") 
-# plot(INPA_dist)
-# saveRDS(INPA_dist, paste0(heavies.rds.path,"INPA_dist.rds"))
-# 
-# KKL_ops <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="KKL_operational_areas") 
-# plot(KKL_ops)
-# saveRDS(KKL_ops, paste0(heavies.rds.path,"KKL_ops.rds"))
-# 
-# military <- readOGR(dsn="E:/GIS working/layers/planning and landuse/planning_landuse.gdb",layer="military_bases") 
-# plot(military)
-# saveRDS(military, paste0(heavies.rds.path,"military.rds"))
-# 
-# rail <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="railways_30m_buffer") 
-# plot(rail)
-# saveRDS(rail, paste0(heavies.rds.path,"rail.rds"))
-# 
-# osm_dist <- readOGR(dsn="E:/GIS working/layers/disturbance/disturbance.gdb",layer="OpenStreetMap_landuse_disturbed") 
-# plot(osm_dist)
-# saveRDS(osm_dist, paste0(heavies.rds.path,"osm_dist.rds"))
-
-# builtup         = readRDS(paste0(heavies.rds.path,"builtup.rds"))
-# agriculture     = readRDS(paste0(heavies.rds.path,"agriculture.rds"))
-# dmt_uncat       = readRDS(paste0(heavies.rds.path,"dmt_uncat.rds"))
-# dmt_bu_ag_plntn = readRDS(paste0(heavies.rds.path,"dmt_bu_ag_plntn.rds"))
-# INPA_dist       = readRDS(paste0(heavies.rds.path,"INPA_dist.rds"))
-# KKL_ops         = readRDS(paste0(heavies.rds.path,"KKL_ops.rds"))
-# military        = readRDS(paste0(heavies.rds.path,"military.rds"))
-# rail            = readRDS(paste0(heavies.rds.path,"rail.rds"))
-# osm_dist        = readRDS(paste0(heavies.rds.path,"osm_dist.rds"))
-
-# disturbed.raw.layers = list(builtup,agriculture, dmt_uncat, dmt_bu_ag_plntn,
-#                             INPA_dist, KKL_ops, military, rail, osm_dist)
-# saveRDS(disturbed.raw.layers, paste0(heavies.rds.path,"disturbed.raw.layers.rds"))
-# disturbed.raw.layers        = readRDS(paste0(heavies.rds.path,"disturbed.raw.layers.rds"))
-} # individual disturbance datasets (obselete)
-  
-# plot(borders, xlim=xlims_b, ylim=ylims_b, add=T)
-# lines(groads, col="grey73")
-# plot(villages, pch=21, bg='lightgreen', cex=0.9, add=TRUE)
-# plot(towns, pch= 21, bg= 'green', cex = 0.9, add=TRUE)
-# plot(small.cities, pch=21, bg='orange', cex=1.4, add=TRUE)
-# 
+# Plot reference datasets ----
+plot(bir.area); lines(bir.area.s, col="brown")
+plot(borders, xlim=xlims_b, ylim=ylims_b, add=T)
+lines(groads, col="grey73")
+plot(villages, pch=21, bg='lightgreen', cex=0.9, add=TRUE)
+plot(towns, pch= 21, bg= 'green', cex = 0.9, add=TRUE)
+plot(small.cities, pch=21, bg='orange', cex=1.4, add=TRUE)
 
 #######################################################################################################################
 # Raster data  ----
@@ -358,15 +298,64 @@ slop = readRDS(paste0(B.heavies.rds.path,"slop.rds"));          plot(slop, main=
 # saveRDS(lith, paste0(B.heavies.rds.path,"lith.rds"))
 lith = readRDS(paste0(B.heavies.rds.path,"lith.rds"));          plot(lith, main="Lithology")
 
-# soil = raster("E:/GIS working/layers/geology and soils/soils_code2_WGSextended.tif"); plot(soil)
-# names(soil) = "Soil.type"
+# soil.code2 = raster("E:/GIS working/layers/geology and soils/soils_code2_WGSextended.tif"); plot(soil.code2)
+# names(soil.code2) = "Soil.type (code 2)"
 # soil original processes to fill NA cells with process below. Read in output from there: 'filled' version 
-# soil = readRDS("E:/R/sdm_edrive/rds_objects/soil.filled.rds");            plot(soil, main="Soil")
-# saveRDS(soil, paste0(B.heavies.rds.path,"soil.rds"))
-soil = readRDS(paste0(B.heavies.rds.path,"soil.rds"));          plot(soil, main="Soil type")
+# soil.code2 = readRDS("E:/R/sdm_edrive/rds_objects/soil.filled.rds");            plot(soil.code2, main="Soil (code 2)")
+# saveRDS(soil.code2, paste0(B.heavies.rds.path,"soil.code2.filled.rds"))
+soil.code2 = readRDS(paste0(B.heavies.rds.path,"soil.code2.filled.rds"));          plot(soil.code2, main="Soil type (code 2)")
+
+# Special job to create a raster of soils code 1 polygons ----
+{# (I previously did soils code 2 in ArcGIS, but currently don't have access to ArcGIS and it's been decided to use code 1 instead of code 2)
+
+library('raster')
+library('rgdal')
+# # Load a SpatialPolygonsDataFrame example (Brazil administrative level 2) shapefile
+dat = readOGR(dsn="E:/GIS working/layers/geology and soils",layer="soils_WGS")
+par(mfrow = c(1,1), mar=c(2,2,2,2), bty="n")
+dat[["CODE1"]]
+plot(dat)
+
+# get names
+(nam <- unique(dat$CODE1))
+
+# create a data.frame
+(nam_df <- data.frame(ID = 1:length(nam), nam = nam))
+
+# Place IDs
+(dat$ID <- nam_df$ID[match(dat$CODE1,nam_df$nam)])
+
+# Define RasterLayer object
+r.raster <- raster()
+
+# Define raster extent
+extent(r.raster) <- extent(dat)
+
+# Define pixel size
+res(r.raster) <- res(slop)
+
+# rasterize
+ras <- rasterize(x = dat, y = r.raster, field = "ID")
+
+# ratify raster
+r <- ratify(ras)
+
+# Create levels
+rat <- levels(r)[[1]]
+rat$names <- nam_df$nam
+rat$IDs <- nam_df$ID
+levels(r) <- rat
+
+rasterVis::levelplot(r)
+soil.code1 = r
+
+saveRDS(soil.code1, paste0(B.heavies.rds.path,"soil.code1.rds"))
+soil.code1 = readRDS(paste0(B.heavies.rds.path,"soil.code1.rds"));          plot(soil.code1, main="Soil type")
+}
 
 # Special job to check and deal with 'NA' '128' values in categorical lithology (and soil) layers ----
-# A) Lithology:
+{
+# A) Remove NAs from Lithology:
 plot(lith, main= "Lithology")
 table(lith[]); summary(lith[]) 
 # values go up to 34, then 128 is the 'NA'; there's 2574700 na-s. But are there NAs in study area?
@@ -377,62 +366,74 @@ length(lith.mask[lith.mask == 128])  # 0. So no filling needed for lithology lay
 lsos() # just get rid of what I don't need right now:
 rm(lith.crop); rm(lith.mask)
 
-# B) Soil:
-{
-# soil = all.rasters[[7]] # only to check. The all.rasters layer should already be cleaned up.
-table(soil[]); summary(soil[]) # values go up to 124, then 128 is the 'NA' value. or from filled version, just 43,812,027 NAs.
-plot(soil, main= "soil")   #
-length(soil[soil == 128])  # 44,590,216 dont have these any more
+# B) Remove NAs from Soil:
+soil = soil.code1
+plot(soil, main= "soil")
+length(soil) # 9.3 million pixels total
+table(soil[]); summary(soil[]) # values range from 1-22. 5.5 million are NAs (mostly white mask)
+
+# Let's see if we need to do any filling of NA values from study area edges:
+# convert NAs back to a number (as they don't plot as NAs)
+soil.999 = soil
+soil.999[is.na(soil.999)] = 999
+length(soil.999[soil.999 == 999])
+
+# now crop and mask and see if there are still any in either species' buffer:
+soil.crop = crop(soil.999, extent(bir.area.s))
+soil.mask = mask(soil.crop, bir.area.s)
+summary(soil.mask[])
+length(soil.mask[soil.mask == 999])  # 15753630 # all '999's gone! finally, after 6 rounds of filling.
+plot(soil.mask, main = "soil.cropped.masked")
+# i.e. yes we do need to do some filling.
+
+# length(soil[soil == 128])  # this was relevant for code 2, not for code 1
 # soil.nas = soil; soil.nas[soil.nas == 128] = NA # convert all 128s to NAs.
 # length(soil.nas[soil.nas == 128]) # 0. confirm it's done
 
 # Multiple rounds of filling (running again to remove persistent voids)
-soil.filled  = focal(soil,     w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 1
-soil.filled2 = focal(soil.filled,  w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 2
-soil.filled3 = focal(soil.filled2, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 3
-soil.filled4 = focal(soil.filled3, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 4
-soil.filled5 = focal(soil.filled4, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 5
-soil.filled6 = focal(soil.filled5, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 6
+soil.filled  = focal(soil,         w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 1
+# soil.filled2 = focal(soil.filled,  w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 2
+# soil.filled3 = focal(soil.filled2, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 3
+# soil.filled4 = focal(soil.filled3, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 4
+# soil.filled5 = focal(soil.filled4, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 5
+# soil.filled6 = focal(soil.filled5, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 6
 
-table(soil[]);         summary(soil[])          # 27652943 cells of '128'
-table(soil.nas[]);     summary(soil.nas[])      # 27652943 NAs
-table(soil.filled[]);  summary(soil.filled[])   # 27538832 NAs, ie got rid of 114,111 NAs.
+table(soil[]);         summary(soil[])          # 5589375 'NA's
+# table(soil.nas[]);     summary(soil.nas[])    # 
+table(soil.filled[]);  summary(soil.filled[])   # 5542030  NAs, ie got rid of 47345 NAs.
 table(soil.filled3[]); summary(soil.filled4[])  # should be well-filled by now
 
 # convert NAs back to a number (as they don't plot as NAs)
-soil.filled.999 = soil.filled
+soil.filled.999 = soil.filled # add number to the end of 'soil.filled' as appropriate
 soil.filled.999[is.na(soil.filled.999)] = 999
 length(soil.filled.999[soil.filled.999 == 999])
 
 # now crop and mask and see if there are still any in either species' buffer:
-soil.filled.crop.b = crop(soil.filled.999, extent(beershebensis.buffer))
-soil.filled.mask.b = mask(soil.filled.crop.b, beershebensis.buffer)
-summary(soil.filled.mask.b[])
-length(soil.filled.mask.b[soil.filled.mask.b == 999])  # 15753630 # all '999's gone! finally, after 6 rounds of filling.
-plot(soil.filled.mask.b, main = "soil.filled.cropped.masked")
-
-# soil.filled.crop.s = crop(soil.filled.999, extent(schreiberi.buffer))
-# soil.filled.mask.s = mask(soil.filled.crop.s, schreiberi.buffer)
-# summary(soil.filled.mask.s[]) # all '999's gone! that means that the only ones that remained were outside of study area.
-# plot(soil.filled.mask.s, main = "soil.filled.cropped.masked")
-
-# delete the objects I no longer need:
-lsos()
-rm(soil.filled, soil.filled2, soil.filled3, soil.filled4, soil.filled5)
-rm(soil.filled.999,soil.filled3.999,soil.filled4.999)
-rm(soil.filled5.999,soil.filled6,soil.nas,soil.filled.crop.s,soil.filled.mask.s)
-rm(soil.filled.crop.b,soil.filled.mask.b)
-gc()
+soil.filled.crop = crop(soil.filled.999, extent(bir.area.s))
+soil.filled.mask = mask(soil.filled.crop, bir.area.s)
+summary(soil.filled.mask[]) # all '999's gone! that means that the only ones that remained were outside of study area.
+length(soil.filled.mask[soil.filled.mask == 999])  # 15753630 # all '999's gone! finally, after 6 rounds of filling.
+plot(soil.filled.mask, main = "soil.filled.cropped.masked")
 
 # replace the soil layer with my new improved one:
 soil = soil.filled
-names(soil) = "soil"
-saveRDS(soil, "./rds/soil.filled.rds")
-soil = readRDS("./rds/soil.filled.rds")
-# b.raster.list[[6]] = soil
-# b.raster.list[[7]] = soil
+names(soil) = "Soil"
+saveRDS(soil, "./rds/soil.code1.filled.rds")
+soil = readRDS("./rds/soil.code1.filled.rds")
+# raster.list[[7]] = soil
+
+# delete the objects I no longer need:
+lsos()
+rm(soil.filled)
+rm(soil.filled.999)
+rm(soil.code2)
+rm(soil.999)
+rm(r, soil.filled.mask, soil.filled.mask.b)
+rm(soils.shp, soil.filled.crop.b)
+rm(soil.filled.crop, soil.mask, dat, ras)
+gc()
+# end of special job to deal with 'NA' values in categorical layers.
 }
-# # end of special job to deal with 'NA' '128' values in vegetation layer.
 
 # Manipulate raster files ----
 
@@ -448,6 +449,7 @@ crs(soil) # good
 
 # reproject rain raster:
 rain = projectRaster(rain, crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"); crs(rain) # good
+soil = projectRaster(soil, crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"); crs(soil) # good
 
 # make lists for loopy manipulation two lists for two alternatives:
 # raster.list.l     = list(rain, jant, jult, dem, twet, slop, lith)
@@ -460,6 +462,7 @@ raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith"
 raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
 
+par(mfrow = c(1,2), mar=c(2,2,2,2), bty="n")
 plot(raster.list.l[[7]], main = names(raster.list.l[[7]]))
 plot(raster.list.s[[7]], main = names(raster.list.s[[7]]))
 lsos()
@@ -478,20 +481,24 @@ res(twet) * deg # 461 metres
 res(jult) * deg # 54 metres
 res(jant) * deg # 54 metres
 names(raster.list.l[[4]]) # this is the smallest resolution for the lithology set
-names(raster.list.s[[7]]) # the smallest for the soil set
+names(raster.list.s[[7]]) # smallest res for the soil set is soil, which is #7
 
 # use resample to make all rasters have the same resolution as the soil layer in the soil raster set
 # NOTE: takes several minutes to run
 par(mfrow = c(2,4), mar = c(1,2,2,4))
 
-rasterlist = raster.list.l; rasterlist.names = raster.list.l.names; area = bir.area # set these for the 2 loops below.
+# set the following three things for the 2 loops below.
+rasterlist = raster.list.s
+rasterlist.names = raster.list.s.names
+area = bir.area.s 
 
+# resampling loop:
 for (i in c(1,2,3,5,6,7))       {  # resampling the rest to align with elevation, which is number 4 (for soils use 7)
   rasterlist[[i]] = resample(rasterlist[[i]], rasterlist[[4]], method="bilinear")
   plot(rasterlist[[i]], main = rasterlist.names[[i]])
   print(res(rasterlist[[i]]))  }    # good.
   
-# crop all rasters to the same extent:
+# loop to crop all rasters to the same extent:
 par(mfrow = c(2,4), mar=c(2,2,2,4))
 for (i in 1:length(rasterlist))                                            {
   rasterlist[[i]] = crop(rasterlist[[i]], extent(area))
@@ -499,7 +506,8 @@ for (i in 1:length(rasterlist))                                            {
   plot(rasterlist[[i]], main = rasterlist.names[[i]])                     }
 
 # take back to original name once the 2 two loops above have finished:
-raster.list.l = rasterlist 
+raster.list.s = rasterlist # make it finish with l or s according to which you've just run
+names(raster.list.s[[7]]) = 'Soil'
 
 # Stack, make images, and save raster objects ----
 preds.s = stack(raster.list.s); plot(preds.s)
@@ -509,7 +517,6 @@ preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # retrieve raster st
 preds.l = stack(raster.list.l); plot(preds.l)
 # saveRDS(preds.l, paste0(B.heavies.rds.path,"preds.l.rds"))
 preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # retrieve raster stack. Slow.
-
 
 # make bricks but don't bother saving or retreiving them; brick RDSs don't save the content
 brick.s = brick(raster.list.s)

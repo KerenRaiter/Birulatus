@@ -899,3 +899,81 @@ d <- distm(sp.mydata)
 
 roundUp <- function(x) 10^ceiling(log10(x))
 roundUp(c(0.0023, 3.99, 10, 1003)) # also works on a vector
+
+#####
+# # rasterize polygons
+
+p1 <- rbind(c(-180,-20), c(-140,55), c(10, 0), c(-140,-60), c(-180,-20))
+hole <- rbind(c(-150,-20), c(-100,-10), c(-110,20), c(-150,-20))
+p1 <- list(p1, hole)
+p2 <- rbind(c(-10,0), c(140,60), c(160,0), c(140,-55), c(-10,0))
+p3 <- rbind(c(-125,0), c(0,60), c(40,5), c(15,-45), c(-125,0))
+
+pols <- spPolygons(p1, p2, p3)
+
+r <- raster(ncol=90, nrow=45)
+r <- rasterize(pols, r, fun=sum)
+
+plot(r)
+plot(pols, add=T)
+
+# add a polygon
+p5 <- rbind(c(-180,10), c(0,90), c(40,90), c(145,-10),
+            c(-25, -15), c(-180,0), c(-180,10))
+addpoly <- SpatialPolygons(list(Polygons(list(Polygon(p5)), 1)))
+addpoly <- as(addpoly, "SpatialPolygonsDataFrame")
+addpoly@data[1,1] <- 10
+r2 <- rasterize(addpoly, r, field=1, update=TRUE, updateValue="NA")
+plot(r2)
+plot(pols, border="blue", lwd=2, add=TRUE)
+plot(addpoly, add=TRUE, border="red", lwd=2)
+
+# get the percentage cover of polygons in a cell
+r3 <- raster(ncol=36, nrow=18)
+r3 <- rasterize(pols, r3, getCover=TRUE)
+
+#####
+# rasterize SpatialPolygonsDataFrame and keep factor field ----
+
+# https://gis.stackexchange.com/questions/325586/r-rasterize-spatialpolygonsdataframe-and-keep-factor-field
+
+library('raster')
+library('rgdal')
+# Load a SpatialPolygonsDataFrame example (Brazil administrative level 2) shapefile
+dat <- raster::getData(country = "BRA", level = 2)
+plot(dat)
+
+# get names
+nam <- unique(dat$NAME_1)
+
+# create a data.frame
+nam_df <- data.frame(ID = 1:length(nam), nam = nam)
+
+# Place IDs
+dat$ID <- nam_df$ID[match(dat$NAME_1,nam_df$nam)]
+
+# Define RasterLayer object
+r.raster <- raster()
+
+# Define raster extent
+extent(r.raster) <- extent(dat)
+
+# Define pixel size
+res(r.raster) <- 0.1
+
+# rasterize
+ras <- rasterize(x = dat, y = r.raster, field = "ID")
+
+# ratify raster
+r <- ratify(ras)
+
+# Create levels
+rat <- levels(r)[[1]]
+rat$names <- nam_df$nam
+rat$IDs <- nam_df$ID
+levels(r) <- rat
+
+rasterVis::levelplot(r)
+
+#####
+#
