@@ -1,8 +1,10 @@
 # Birulatus 1: data and functions (& things to do) ----
 
-# 3. organise point data for import.
+# need to merge polygons of israel.WB.no.water for use of that as israel-wide study area
+# 3. organise point data for import: two stages, three extents, two types. 
+# get raster layers ready for the three different extents of modelling
 
-#######################################################################################################################
+####################################################################################################
 # Set up and install relevant packages and locations ----
 
 # ipak function: install (if not already installed) and load multiple R packages.
@@ -11,7 +13,7 @@ if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
 ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
        "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
-       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava")) # removed sf, may be causing problems
+       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","readxl")) # removed sf, may be causing problems
 # installed.packages()
 installAll() # installing everything the sdm relies on.
 
@@ -58,7 +60,7 @@ B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
 ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +towgs84=-24.002400,-17.103200,-17.844400,-0.33077,-1.85269,1.66969,5.4248 +units=m +no_defs")
 
-#######################################################################################################################
+####################################################################################################
 # Datasets I prepared earlier in this script ----
 
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
@@ -66,9 +68,9 @@ israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS(".
 israel.noWB      = readRDS("rds/israel.noWB.rds")
 plot(borders); lines(israel.WB.merged, col = "green", lwd = 4); lines(israel.noWB, col="blue")
 
-bir.area    = readRDS("rds/bir.area.rds")   # study area
+bir.area.l    = readRDS("rds/bir.area.l.rds")   # study area
 bir.area.s  = readRDS("rds/bir.area.s.rds") # study area limited to where there is soils info
-plot(bir.area, lwd = 5, col = "brown"); lines(bir.area.s, col = "yellow")
+plot(bir.area.l, lwd = 5, col = "brown"); lines(bir.area.s, col = "yellow")
 xlims = c(35.14081, 35.86214)
 ylims = c(31.59407, 33.00496)
 
@@ -80,11 +82,12 @@ villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
 
-raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds")); plot(raster.list.l[[1]])
-raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+# raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds")); plot(raster.list.l[[1]])
+# raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds")); plot(raster.list.s[[7]])
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
 preds.s             = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack
+plot(preds.s)
 
 bi.raw = readRDS("./rds/bi.raw.rds") 
 bi     = readRDS("./rds/bi.rds") ;    bi.s  = readRDS("./rds/bi.s.rds") 
@@ -95,11 +98,6 @@ bia    = readRDS("./rds/bia.rds");    bia.s    = readRDS("./rds/bia.s.rds")
 ...
 {
 s.preds             = readRDS(paste0(heavies.rds.path,"s.preds.rds")) # raster stack
-
-xlims_b = c(34.267142, 35.397332);   saveRDS(xlims_b, "./rds/xlims_b.rds")
-ylims_b = c(30.507978, 31.720564);   saveRDS(ylims_b, "./rds/ylims_b.rds")
-xlims_s = c(34.271733, 35.324798);   saveRDS(xlims_s, "./rds/xlims_s.rds")  
-ylims_s = c(31.126732, 33.107418);   saveRDS(ylims_s, "./rds/ylims_s.rds")
 
 nat.res   = readRDS(paste0(heavies.rds.path,"nat.res.rds"));  plot(nat.res,  col="darkgreen",  border="darkgreen")
 nat.park  = readRDS(paste0(heavies.rds.path,"nat.park.rds")); plot(nat.park, col="lightgreen", border="lightgreen",add=T)
@@ -121,7 +119,7 @@ firing_excl_dist_l            = readRDS(paste0(heavies.rds.path,"firing_excl_dis
 firing_excl_alllanduse        = readRDS(paste0(heavies.rds.path,"firing_excl_alllanduse.rds"))
 }
 
-#######################################################################################################################
+####################################################################################################
 # Importing reference datasets and study area boundaries ----
 
 # Country borders ----
@@ -135,25 +133,34 @@ israel.WB.merged = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_
 plot(israel.WB.merged)
 
 israel.WB.no.water = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_&_West_Bank_minuswaterbodies_WGS")
-plot(israel.WB.no.water)
+plot(israel.WB.no.water, col='blue')
+israel.WB.no.water.merge <- aggregate(israel.WB.no.water, dissolve=T)
+length(israel.WB.no.water.merge@polygons)
+plot(israel.WB.no.water.merge)
 
 israel.noWB = borders[borders$Label == "Israel",]; plot(israel.noWB)
 
-saveRDS(borders, "rds/borders.rds");                     saveRDS(israel.WB, "rds/israel.WB.rds")
-saveRDS(israel.WB.merged, "./rds/israel.WB.merged.rds"); saveRDS(israel.WB, "./rds/israel.WB.no.water.rds")
+saveRDS(borders, "rds/borders.rds")         
+saveRDS(israel.WB, "rds/israel.WB.rds")
+saveRDS(israel.WB.merged, "./rds/israel.WB.merged.rds")
+saveRDS(israel.WB, "./rds/israel.WB.no.water.rds")
 saveRDS(israel.noWB, "rds/israel.noWB.rds")
 
 # Transformations:
 # borders.ITM = spTransform(borders, ITM)
 
 # Study area ----
-bir.area = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_original") # 20 km, amended
-plot(bir.area)
-saveRDS(bir.area, "./rds/bir.area.rds")
-
 bir.area.s = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_soils") # reduced
 plot(soil, ylim=c(32.7,33), xlim=c(35.5,36)); lines(bir.area.s) # zooming in on area of interest.
 saveRDS(bir.area.s, "./rds/bir.area.s.rds")
+
+bir.area.l = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_lith")
+plot(bir.area.l)
+saveRDS(bir.area.l, "./rds/bir.area.l.rds")
+
+bir.area.i = israel.WB.no.water.merge # israel-wide extent, incl west bank, excl water bodies.
+plot(bir.area.i, col='orange')
+saveRDS(bir.area.i, "./rds/bir.area.l.rds")
 
 # Cities and other population centres etc ----
 population.centres   = readOGR(dsn="E:/GIS working/layers/society",layer="Population_centres")
@@ -241,10 +248,10 @@ saveRDS(groads, "./rds/groads.rds")
 # png(filename = "./output_images/landuse_b.png", width = 12, height = 15, units = 'cm', res = 900)
 # par(mar=c(0,0,0,0))
 # plot(landuse[landuse@data$landuse == "built-up area",], col="darkgrey",border="darkgrey",lwd=0.25, xlim=xlims_b,ylim=ylims_b)
-# plot(landuse_b[landuse_b@data$landuse == "conservation",],  col="lightgreen",     border=NA, add=T)
-# plot(landuse_b[landuse_b@data$landuse == "military",],      col="lightslateblue", border=NA, add=T)
-# plot(landuse_b[landuse_b@data$landuse == "forestry",],      col="darkgreen",      border=NA, add=T)
-# plot(landuse_b[landuse_b@data$landuse == "agriculture",],   col="chocolate",      border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "conservation",], col="lightgreen",     border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "military",],     col="lightslateblue", border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "forestry",],     col="darkgreen",      border=NA, add=T)
+# plot(landuse_b[landuse_b@data$landuse == "agriculture",],  col="chocolate",      border=NA, add=T)
 # plot(major.cities, pch=21, bg='yellow', cex=1, add=TRUE)
 # with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.5, font=2, offset=0.3))
 # legend("bottomright", c("Agriculture","Built-up area","Military","Forestry","Conservation"), pch=22, pt.cex=1.5, 
@@ -255,62 +262,70 @@ saveRDS(groads, "./rds/groads.rds")
 # simplifying dataset with rmshaper doesn't work, did in ArcGIS instead:
 # landuse_simple = rmapshaper::ms_simplify(landuse_b, keep = 0.2, keep_shapes = TRUE)
 
-
 # Plot reference datasets ----
-plot(bir.area); lines(bir.area.s, col="brown")
-plot(borders, xlim=xlims_b, ylim=ylims_b, add=T)
+plot(bir.area.i); lines(bir.area.l, col="blue", lwd=2); lines(bir.area.s, col="orange")
 lines(groads, col="grey73")
-plot(villages, pch=21, bg='lightgreen', cex=0.9, add=TRUE)
-plot(towns, pch= 21, bg= 'green', cex = 0.9, add=TRUE)
+points(towns, pch= 21, bg= 'green', cex = 0.9)
 plot(small.cities, pch=21, bg='orange', cex=1.4, add=TRUE)
 
-#######################################################################################################################
+####################################################################################################
 # Raster data  ----
 # note: very slow, best to just reload a previously-run version, see end of section line 
 
 par(mfrow = c(2,4), mar=c(2,2,2,2), bty="n")
 # rain = raster("E:/GIS working/layers/climate/Annual_Rain_1981-2010.tif"); plot(rain); names(rain)="Precipitation"
 # saveRDS(rain, paste0(B.heavies.rds.path,"rain.original.rds"))
-rain = readRDS(paste0(B.heavies.rds.path,"rain.original.rds"));          plot(rain, main="Rainfall")
+rain = readRDS(paste0(B.heavies.rds.path,"rain.original.rds"))
+plot(rain, main="Rainfall"); lines(bir.area.i)
 
 # jant = raster("E:/GIS working/layers/climate/av_temp_jan_WGS.tif"); plot(jant); names(jant) = "Jan mean temperature"
 # saveRDS(jant, paste0(B.heavies.rds.path,"jant.rds"))
-jant = readRDS(paste0(B.heavies.rds.path,"jant.rds"));          plot(jant, main="Jan temperature")
+jant = readRDS(paste0(B.heavies.rds.path,"jant.rds"))
+plot(jant, main="Jan temperature"); lines(bir.area.i)
 
 # jult = raster("E:/GIS working/layers/climate/av_temp_july_WGS.tif"); plot(jult); names(jult) ="July mean temperature"
 # saveRDS(jult, paste0(B.heavies.rds.path,"jult.rds"))
-jult = readRDS(paste0(B.heavies.rds.path,"jult.rds"));          plot(jult, main="July temperature")
+jult = readRDS(paste0(B.heavies.rds.path,"jult.rds"))
+plot(jult, main="July temperature"); lines(bir.area.i)
 
 # dem = raster("E:/GIS working/layers/topography/DEM_WGS84.tif"); plot(dem); names(dem) ="Elevation"
 # saveRDS(dem, paste0(B.heavies.rds.path,"dem.rds"))
-dem = readRDS(paste0(B.heavies.rds.path,"dem.rds"));          plot(dem, main="Elevation")
+dem = readRDS(paste0(B.heavies.rds.path,"dem.rds"))
+plot(dem, main="Elevation"); lines(bir.area.i)
 
 # twet = raster("E:/GIS working/layers/topography/Topo_index_IsraelWB.tif")
 # plot(twet); names(twet)="Topographic Wetness"
 # saveRDS(twet, paste0(B.heavies.rds.path,"twet.rds"))
-twet = readRDS(paste0(B.heavies.rds.path,"twet.rds"));          plot(twet, main="Topographic wetness")
+twet = readRDS(paste0(B.heavies.rds.path,"twet.rds"))
+plot(twet, main="Topographic wetness"); lines(bir.area.i)
 
 # slop = raster("E:/GIS working/layers/topography/Yamazaki_topo/slope_yk.tif"); plot(slop); names(slop)="Slope"
 # saveRDS(slop, paste0(B.heavies.rds.path,"slop.rds"))
-slop = readRDS(paste0(B.heavies.rds.path,"slop.rds"));          plot(slop, main="Slope")
+slop = readRDS(paste0(B.heavies.rds.path,"slop.rds"))
+plot(bir.area.i); plot(slop, main="Slope", add=T); lines(bir.area.i)
+# issue here that slope data doesn't cover the southern extent. Might be able to download more data.
+#let's try making the slope layer from the DEM layer:
+slop = terrain(dem, opt="slope", unit="degrees", neighbors=8)
+# issue solved!
 
 # lith = raster("E:/GIS working/layers/geology and soils/lithology_to_raster.tif"); plot(lith); names(lith)="Lithology"
 # saveRDS(lith, paste0(B.heavies.rds.path,"lith.rds"))
-lith = readRDS(paste0(B.heavies.rds.path,"lith.rds"));          plot(lith, main="Lithology")
+lith = readRDS(paste0(B.heavies.rds.path,"lith.rds"))
+plot(lith, main="Lithology"); lines(bir.area.i)
 
-# soil.code2 = raster("E:/GIS working/layers/geology and soils/soils_code2_WGSextended.tif"); plot(soil.code2)
+# soil.code2 = raster("E:/GIS working/layers/geology and soils/soils_code2_WGSextended.tif")
 # names(soil.code2) = "Soil.type (code 2)"
-# soil original processes to fill NA cells with process below. Read in output from there: 'filled' version 
-# soil.code2 = readRDS("E:/R/sdm_edrive/rds_objects/soil.filled.rds");            plot(soil.code2, main="Soil (code 2)")
+# soil original processed to fill NA cells (see below). Read in output from there: 'filled' version 
+# soil.code2 = readRDS("E:/R/sdm_edrive/rds_objects/soil.filled.rds")
 # saveRDS(soil.code2, paste0(B.heavies.rds.path,"soil.code2.filled.rds"))
-soil.code2 = readRDS(paste0(B.heavies.rds.path,"soil.code2.filled.rds"));          plot(soil.code2, main="Soil type (code 2)")
+soil.code2 = readRDS(paste0(B.heavies.rds.path,"soil.code2.filled.rds"))
+plot(soil.code2, main="Soil type (code 2)")
 
 # Special job to create a raster of soils code 1 polygons ----
 {# (I previously did soils code 2 in ArcGIS, but currently don't have access to ArcGIS and it's been decided to use code 1 instead of code 2)
 
 library('raster')
 library('rgdal')
-# # Load a SpatialPolygonsDataFrame example (Brazil administrative level 2) shapefile
 dat = readOGR(dsn="E:/GIS working/layers/geology and soils",layer="soils_WGS")
 par(mfrow = c(1,1), mar=c(2,2,2,2), bty="n")
 dat[["CODE1"]]
@@ -348,19 +363,22 @@ levels(r) <- rat
 
 rasterVis::levelplot(r)
 soil.code1 = r
+table(r[])
 
 saveRDS(soil.code1, paste0(B.heavies.rds.path,"soil.code1.rds"))
-soil.code1 = readRDS(paste0(B.heavies.rds.path,"soil.code1.rds"));          plot(soil.code1, main="Soil type")
+soil.code1 = readRDS(paste0(B.heavies.rds.path,"soil.code1.rds")); plot(soil.code1, main="Soil type")
 }
+soil.code1 = readRDS(paste0(B.heavies.rds.path,"soil.code1.rds"))
+plot(soil.code1, main="Soil type"); lines(bir.area.i)
 
-# Special job to check and deal with 'NA' '128' values in categorical lithology (and soil) layers ----
+# Special job to check and deal with NA/'128' values in categorical lithology (and soil) layers ----
 {
 # A) Remove NAs from Lithology:
 plot(lith, main= "Lithology")
 table(lith[]); summary(lith[]) 
 # values go up to 34, then 128 is the 'NA'; there's 2574700 na-s. But are there NAs in study area?
 length(lith[lith == 128])  # 2,574,700 
-lith.crop = crop(lith, extent(bir.area))
+lith.crop = crop(lith, extent(bir.area.l))
 
 length(lith.mask[lith.mask == 128])  # 0. So no filling needed for lithology layer.
 lsos() # just get rid of what I don't need right now:
@@ -379,8 +397,8 @@ soil.999[is.na(soil.999)] = 999
 length(soil.999[soil.999 == 999])
 
 # now crop and mask and see if there are still any in either species' buffer:
-soil.crop = crop(soil.999, extent(bir.area.s))
-soil.mask = mask(soil.crop, bir.area.s)
+soil.crop = crop(soil.999, extent(bir.area.i))
+soil.mask = mask(soil.crop, bir.area.i)
 summary(soil.mask[])
 length(soil.mask[soil.mask == 999])  # 15753630 # all '999's gone! finally, after 6 rounds of filling.
 plot(soil.mask, main = "soil.cropped.masked")
@@ -391,135 +409,154 @@ plot(soil.mask, main = "soil.cropped.masked")
 # length(soil.nas[soil.nas == 128]) # 0. confirm it's done
 
 # Multiple rounds of filling (running again to remove persistent voids)
-soil.filled  = focal(soil,         w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 1
-# soil.filled2 = focal(soil.filled,  w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 2
-# soil.filled3 = focal(soil.filled2, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 3
-# soil.filled4 = focal(soil.filled3, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 4
-# soil.filled5 = focal(soil.filled4, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 5
-# soil.filled6 = focal(soil.filled5, w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE) # round 6
+soil.filledX = focal(soil,         w=matrix(1,7,7), fun = modal, na.rm=TRUE, NAonly=TRUE, pad=TRUE)
+soil.filledX = focal(soil.filledX, w=matrix(1,7,7), fun = min, na.rm=TRUE, NAonly=TRUE, pad=TRUE)
 
-table(soil[]);         summary(soil[])          # 5589375 'NA's
-# table(soil.nas[]);     summary(soil.nas[])    # 
-table(soil.filled[]);  summary(soil.filled[])   # 5542030  NAs, ie got rid of 47345 NAs.
-table(soil.filled3[]); summary(soil.filled4[])  # should be well-filled by now
+table(soil.filledX[]); summary(soil.filledX[]) # need NAs to reduce but not necessarily dissapear
 
+# Check to see if the relevant NAs have been dealt with:
 # convert NAs back to a number (as they don't plot as NAs)
-soil.filled.999 = soil.filled # add number to the end of 'soil.filled' as appropriate
+soil.filled.999 = soil.filledX
 soil.filled.999[is.na(soil.filled.999)] = 999
 length(soil.filled.999[soil.filled.999 == 999])
-
 # now crop and mask and see if there are still any in either species' buffer:
-soil.filled.crop = crop(soil.filled.999, extent(bir.area.s))
-soil.filled.mask = mask(soil.filled.crop, bir.area.s)
-summary(soil.filled.mask[]) # all '999's gone! that means that the only ones that remained were outside of study area.
-length(soil.filled.mask[soil.filled.mask == 999])  # 15753630 # all '999's gone! finally, after 6 rounds of filling.
+soil.filled.crop = crop(soil.filled.999, extent(bir.area.i))
+soil.filled.mask = mask(soil.filled.crop, bir.area.i)
+length(soil.filled.mask[soil.filled.mask == 999])  # need to get this to zero. Good enough here
 plot(soil.filled.mask, main = "soil.filled.cropped.masked")
 
 # replace the soil layer with my new improved one:
-soil = soil.filled
+soil = soil.filledX
 names(soil) = "Soil"
-saveRDS(soil, "./rds/soil.code1.filled.rds")
-soil = readRDS("./rds/soil.code1.filled.rds")
-# raster.list[[7]] = soil
+saveRDS(soil,  paste0(B.heavies.rds.path,"soil.code1.filled.rds"))
+soil = readRDS(paste0(B.heavies.rds.path,"soil.code1.filled.rds"))
 
 # delete the objects I no longer need:
 lsos()
-rm(soil.filled)
-rm(soil.filled.999)
-rm(soil.code2)
-rm(soil.999)
-rm(r, soil.filled.mask, soil.filled.mask.b)
-rm(soils.shp, soil.filled.crop.b)
-rm(soil.filled.crop, soil.mask, dat, ras)
+rm(soil.filled, soil.filledX, soil.crop, soil.mask)
+rm(soil.filled.999, soil.filled.crop, soil.filled.mask, soil.999, ras)
 gc()
 # end of special job to deal with 'NA' values in categorical layers.
 }
 
 # Manipulate raster files ----
 
-# get all raster files into the same coordinate system:
-crs(rain) # "ellps=GRS80", need to reproject to WGS 84
-crs(jant) # good "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" the projection we want= WGS1984.
-crs(jult) # good
-crs(dem)  # good
-crs(twet) # good
-crs(slop) # good
-crs(lith) # good 
-crs(soil) # good
+# make lists for loopy manipulation two lists for the three extents and their specific datasets.
+# first make a master raster list and then crop and select relevant rasters for specific lists
 
-# reproject rain raster:
-rain = projectRaster(rain, crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"); crs(rain) # good
-soil = projectRaster(soil, crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"); crs(soil) # good
+master.raster.list = list(rain, jant, jult, dem, twet, slop, lith, soil)
+par(mfrow = c(4,2), mar=c(2,2,2,2), bty="n")
 
-# make lists for loopy manipulation two lists for two alternatives:
-# raster.list.l     = list(rain, jant, jult, dem, twet, slop, lith)
-# saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
-raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
-raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+# diagnostic loop:
+for (i in 1:length(master.raster.list))       {
+  plot(master.raster.list[[i]], main = names(master.raster.list[[i]])); lines(bir.area.i)
+  print(names(master.raster.list[[i]]))
+  print(res(master.raster.list[[i]])); print(crs(master.raster.list[[i]]))}
 
-# raster.list.s     = list(rain, jant, jult, dem, twet, slop, soil)
-# saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
-raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
-raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
+# get all raster files into the same coordinate system 
+# we want WGS84: "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs(master.raster.list[[1]])
+master.raster.list[[1]] = projectRaster(master.raster.list[[1]], 
+                                        crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84   +towgs84=0,0,0")
+crs(master.raster.list[[1]])
 
-par(mfrow = c(1,2), mar=c(2,2,2,2), bty="n")
-plot(raster.list.l[[7]], main = names(raster.list.l[[7]]))
-plot(raster.list.s[[7]], main = names(raster.list.s[[7]]))
-lsos()
+crs(master.raster.list[[8]])
+master.raster.list[[8]] = projectRaster(master.raster.list[[8]], 
+                                        crs="+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84   +towgs84=0,0,0")
+crs(master.raster.list[[8]]) # I don't know what the no defs means, doesn't seem to create a problem
 
-# Align the resolutions. Here, i've put them in order of how important resolution might be:
+# looking at resolutions
+# i've put them in order of how important resolution might be:
 # from: http://www.csgnetwork.com/degreelenllavcalc.html
 deg.length.north = 110904.5249690638  # based on north of study area being 33.004964 degrees north
 deg.length.south = 110879.71166494413 # based on south of study area being 31.594068 degrees north
 deg = mean(c(deg.length.north,deg.length.south)) # 110892.1 for Birulatus study area
-res(soil) * deg # 32.7 metres. smallest
-res(dem)  * deg # 36.5 metres. smallest resolution in the lith set. I'll go with this for now. This is raster.list #4.
-res(lith) * deg # 92.4 metres. 
-res(slop) * deg # 92.4 metres. more useful without being over the top.
-res(rain) * deg # 291 metres
-res(twet) * deg # 461 metres
-res(jult) * deg # 54 metres
-res(jant) * deg # 54 metres
-names(raster.list.l[[4]]) # this is the smallest resolution for the lithology set
-names(raster.list.s[[7]]) # smallest res for the soil set is soil, which is #7
 
-# use resample to make all rasters have the same resolution as the soil layer in the soil raster set
+for (i in 1:length(master.raster.list))       {
+  print(names(master.raster.list[[i]]))
+  print(res(master.raster.list[[i]]) * deg)}
+
+# "Precipitation" 291.6463 249.5073
+# "Jan.mean.temperature" 54.60929 54.60929
+# "July.mean.temperature" 54.60929 54.60929
+# "Elevation" 36.52909 36.52909                 # the smallest resolution. use this for all.
+# "Topographic.Wetness" 462.0505 462.0505
+# "Slope" 92.4101 92.4101
+# "Lithology" 92.4101 92.4101
+# "Soil" 92.37313 92.37313 # the soil resolution is arbitrary as based on rasterised polygons
+
+# use resample to make all rasters have the same resolution as the elevation layer
 # NOTE: takes several minutes to run
 par(mfrow = c(2,4), mar = c(1,2,2,4))
 
-# set the following three things for the 2 loops below.
-rasterlist = raster.list.s
-rasterlist.names = raster.list.s.names
-area = bir.area.s 
-
 # resampling loop:
-for (i in c(1,2,3,5,6,7))       {  # resampling the rest to align with elevation, which is number 4 (for soils use 7)
-  rasterlist[[i]] = resample(rasterlist[[i]], rasterlist[[4]], method="bilinear")
-  plot(rasterlist[[i]], main = rasterlist.names[[i]])
-  print(res(rasterlist[[i]]))  }    # good.
-  
-# loop to crop all rasters to the same extent:
-par(mfrow = c(2,4), mar=c(2,2,2,4))
-for (i in 1:length(rasterlist))                                            {
-  rasterlist[[i]] = crop(rasterlist[[i]], extent(area))
-  rasterlist[[i]] = mask(rasterlist[[i]], area)
-  plot(rasterlist[[i]], main = rasterlist.names[[i]])                     }
+for (i in c(1,2,3,5,6,7)) {  # resampling the rest to align with elevation, which is number 4
+  master.raster.list[[i]] = resample(master.raster.list[[i]], master.raster.list[[4]], 
+                                     method="bilinear")
+  plot(master.raster.list[[i]], main = master.raster.list[[i]])
+  print(res(master.raster.list[[i]]))  }    # good.
 
-# take back to original name once the 2 two loops above have finished:
-raster.list.s = rasterlist # make it finish with l or s according to which you've just run
-names(raster.list.s[[7]]) = 'Soil'
+# resampling soil with a differnt method to keep its values as integers
+master.raster.list[[8]] = resample(master.raster.list[[8]], master.raster.list[[4]], method="ngb")
+table(master.raster.list[[8]][])
+plot(master.raster.list[[8]], main = master.raster.list[[8]])
+print(res(master.raster.list[[8]]))
+  
+# now separate out the raster lists for the different extents:
+raster.list.s = master.raster.list[c(1:6,8)]
+raster.list.l = master.raster.list[c(1:7)]
+raster.list.i = master.raster.list[c(1:7)]
+
+# loops to crop all rasters to the same extent for each list:
+
+par(mfrow = c(4,2), mar=c(2,2,2,4))
+for (i in 1:length(raster.list.s))                                  {
+  raster.list.s[[i]] = crop(raster.list.s[[i]], extent(bir.area.s))
+  raster.list.s[[i]] = mask(raster.list.s[[i]], bir.area.s)
+  plot(raster.list.s[[i]], main = names(raster.list.s[[i]]))        }
+
+par(mfrow = c(4,2), mar=c(2,2,2,4))
+for (i in 1:length(raster.list.l))                                  {
+  raster.list.l[[i]] = crop(raster.list.l[[i]], extent(bir.area.l))
+  raster.list.l[[i]] = mask(raster.list.l[[i]], bir.area.l)
+  plot(raster.list.l[[i]], main = names(raster.list.l[[i]]))        }
+
+par(mfrow = c(4,2), mar=c(2,2,2,4))
+for (i in 1:length(raster.list.i))                                  {
+  raster.list.i[[i]] = crop(raster.list.i[[i]], extent(bir.area.i))
+  raster.list.i[[i]] = mask(raster.list.i[[i]], bir.area.i)
+  plot(raster.list.i[[i]], main = names(raster.list.i[[i]]))        }
+
+# saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
+# saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
+# saveRDS(raster.list.i,  paste0(B.heavies.rds.path,"raster.list.i.rds"))
+
+raster.list.s  = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+raster.list.l  = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.i  = readRDS(paste0(B.heavies.rds.path,"raster.list.i.rds"))
+
+raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
+raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+raster.list.i.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
 
 # Stack, make images, and save raster objects ----
-preds.s = stack(raster.list.s); plot(preds.s)
+up to here - stacking didn't work as the extents don't line up??? maybe i need to do the resmapling inside the individual lists after all.
+  
+# preds.s = stack(raster.list.s); plot(preds.s)
+# preds.l = stack(raster.list.l); plot(preds.l)
+# preds.i = stack(raster.list.l); plot(preds.i)
+
 # saveRDS(preds.s, paste0(B.heavies.rds.path,"preds.s.rds"))
-preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # retrieve raster stack. Slow.
-
-preds.l = stack(raster.list.l); plot(preds.l)
 # saveRDS(preds.l, paste0(B.heavies.rds.path,"preds.l.rds"))
-preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # retrieve raster stack. Slow.
+# saveRDS(preds.i, paste0(B.heavies.rds.path,"preds.i.rds"))
 
-# make bricks but don't bother saving or retreiving them; brick RDSs don't save the content
+preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack. Slow.
+preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # raster stack. Slow.
+preds.i = readRDS(paste0(B.heavies.rds.path,"preds.i.rds")) # raster stack. Slow.
+
+# make bricks but don't bother saving them; brick RDSs don't save the content
 brick.s = brick(raster.list.s)
+
 
 # # experimenting with colour palettes:
 par(mfrow=c(2,3), mar=c(1,1,1,1))
@@ -567,12 +604,19 @@ saveRDS(preds.s,        paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack
 
 #######################################################################################################################
 # Importing observation datasets ----
-# NOTE, across the scripts, there are three versions of the observations datasets:
-# .raw means the full original datasets after they have been cleaned and fixed, created in script #1
+# NOTE, across the scripts, there are three stages of the observations datasets:
+# .raw is the full original datasets after being cleaned and fixed, created in script #1
 # .nodups after removal of duplicates (done in script #3)
 # clean version: eg bi = birulatus survey data ready for modelling
 
-# Birulatus observations data 
+# Also there are three modelling runs based on different extents:
+# bs : (smallest) study area based on 20 km buffer on presences, delimited by soils data - this cuts off the golan heights
+# bl : (second smallest) study area based on 20 km buffer on presences, lithology used as a proxy for soils
+# bi : Israel-wide (excluding waterbodies etc)
+
+# Originally birulatus observations per nest were used for the modelling. As of late 2020/early 2021, we transitioned to having the observations done by site (n = 23-27)
+
+# Birulatus observations data *by nest* ----
 bi.raw <- readOGR(dsn="E:/GIS working/layers/birulatus", layer="birulatus_corrected") # reading species obs
 head(bi.raw) 
 str(bi.raw) 
@@ -588,7 +632,7 @@ bi.raw = bi.raw[ grep ("remove due to proximity", bi.raw$absen_rem, invert = TRU
 table(bi.raw$occurrence) # 14 of the 122 absence records removed for being too close to presence records.
 
 # full study area/lithology version:
-(bi   = bi.raw[bir.area, ])   # super-simple spatial subsetting by polygon clip
+(bi   = bi.raw[bir.area.l, ])   # super-simple spatial subsetting by polygon clip
 (bip = bi[bi$occurrence == 1,]) # bip = birulatus presences, within the full study area (as modelling with lithology)
 (bia = bi[bi$occurrence == 0,]) # bia = birulatus presences, within the full study area (as modelling with lithology)
 
@@ -601,7 +645,7 @@ table(bi.raw$occurrence) # 14 of the 122 absence records removed for being too c
 png(filename = "images/obs 1 - Birulatus survey data by presence-absence_full study area.png", 
     width=10, height=20, units='cm', res=600)
 par(mar=c(1,1,2,1), mfrow=c(1,1))
-plot(bir.area, col = NA, border="darkgreen",
+plot(bir.area.l, col = NA, border="darkgreen",
      main="Birulatus survey data (167 features)", cex.main = 1,  font.main= 2) # 167 features for lith set
 lines(israel.WB, col="grey", lty=5, lwd=2)
 points(bi[bi$occurrence == 1,], col='blue', pch=16, cex=0.7)
@@ -614,6 +658,70 @@ with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$n
 with(selected.towns, text(selected.towns$lat~selected.towns$lon, labels=selected.towns$name,pos=4,cex=0.7, offset=0.4))
 legend("topleft", c("Presence (83 observations)", "Absence (84 observations)"), col=c("blue","red"), pch=16, cex=.7)
 dev.off()
+
+# saveRDS(bi.raw,  "./rds/bi.raw.bynest.rds") 
+# saveRDS(bi,      "./rds/bi.bynest.rds") 
+# saveRDS(bip,      "./rds/bip.bynest.rds")
+# saveRDS(bia,      "./rds/bia.bynest.rds")
+# saveRDS(bi.s,      "./rds/bi.s.bynest.rds")
+# saveRDS(bip.s,      "./rds/bip.s.bynest.rds")
+# saveRDS(bia.s,      "./rds/bia.s.bynest.rds")
+
+# Import birulatus observations *by site* introduced May 2021 ----
+library("readxl")
+getwd()
+bir.by.site = read_excel("./data/2020 11 16 Birulatus data summarised by site.xlsx")
+
+# prepare coordinates, data, and proj4string
+coords <- bir.by.site[ , c("long", "lat")]                   # coordinates
+data   <- bir.by.site[ , c("Location","Birulatus")]          # data
+crs    <- CRS(" +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") # coordinate reference system
+
+# make the SpatialPointsDataFrame object
+b.raw <- SpatialPointsDataFrame(coords      = coords,
+                            data        = data, 
+                            proj4string = crs)
+class(b.raw)
+b.raw # 27 features
+str(b.raw@data)
+b.raw$occurrence = ifelse(b.raw$Birulatus == "Yes",1,0) 
+table(b.raw$occurrence, b.raw$Birulatus) # good
+b.raw$Birulatus = NULL
+table(b.raw$occurrence)
+
+plot(b.raw, pch=21, bg='blue')
+with(b, text(b$lat ~ b$long, labels=b$Location, pos=4, cex=0.6, font=1))
+plot(bir.area.s, add=T)
+plot(bir.area.l, add=T, col=grey)
+plot()
+plot(b[b@data$Birulatus == "Yes",],  pch=21, bg='green', cex=2, add=T)
+plot(b[b@data$Birulatus == "No",],  pch=21, bg='red', cex=2, add=TRUE)
+
+# subset for lithology-delimited study area:
+(b.l   = b.raw[bir.area.l, ])
+
+# subset for soils-delimited study area:
+(b.s   = b.raw[bir.area.s, ])
+
+par(mar=c(1,1,2,1), mfrow=c(1,1))
+plot(b.raw, pch=21, bg='blue')
+
+plot(bir.area.s)
+points(b, pch=21, bg='blue')
+(b.s   = b[bir.area.s, ])
+
+points(b[bir.area.s, ], pch=21, bg='green')
+with(b, text(b$lat ~ b$long, labels=b$Location, pos=4, cex=1, font=2))
+#drop Hispin as it's outside the soil-delimited study area boundary:
+
+
+# legend("bottomright", c("Agriculture","Built-up area","Military","Forestry","Conservation"), pch=22, pt.cex=1.5, 
+#         col=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"),
+#         pt.bg=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"))
+#
+
+# plot the copper column 
+plot(spdf, "Birulatus")
 
 # saveRDS(bi.raw,  "./rds/bi.raw.rds") 
 # saveRDS(bi,      "./rds/bi.rds") 

@@ -1,4 +1,8 @@
 # Birulatus 2 data explore
+
+update to new terms:
+  bir.area.l and bir.area.s and israel
+
 #######################################################################################################################
 # Set up and install relevant packages and locations ----
 

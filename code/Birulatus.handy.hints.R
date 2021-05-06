@@ -901,7 +901,7 @@ roundUp <- function(x) 10^ceiling(log10(x))
 roundUp(c(0.0023, 3.99, 10, 1003)) # also works on a vector
 
 #####
-# # rasterize polygons
+# Rasterize polygons ----
 
 p1 <- rbind(c(-180,-20), c(-140,55), c(10, 0), c(-140,-60), c(-180,-20))
 hole <- rbind(c(-150,-20), c(-100,-10), c(-110,20), c(-150,-20))
@@ -977,3 +977,36 @@ rasterVis::levelplot(r)
 
 #####
 #
+# Create SpatialPpointsDataFrame from coordinates ----
+
+# To make a SpatialPointsDataFrame you need 3 components:
+#  coordinates
+#  data
+#  proj4string of the coordinates (AKA, coordinate reference system (CRS))
+
+# load some example data
+library(sp)                       # spatial library
+data(meuse)                       # load built in dataset
+
+# prepare coordinates, data, and proj4string
+coords <- meuse[ , c("x", "y")]   # coordinates
+data   <- meuse[ , 3:14]          # data
+crs    <- CRS("+init=epsg:28992") # proj4string of coords
+
+# make the SpatialPointsDataFrame object
+spdf <- SpatialPointsDataFrame(coords      = coords,
+                               data        = data, 
+                               proj4string = crs)
+# check the object class
+class(spdf)
+
+# plot the copper column 
+spplot(spdf, "copper")
+
+#####
+# Choose a file interactively -----
+# It’s also possible to choose a file interactively using the function file.choose(), which I recommend if you’re a beginner in R programming:
+  my_data <- read_excel(file.choose())
+
+#####
+# 
