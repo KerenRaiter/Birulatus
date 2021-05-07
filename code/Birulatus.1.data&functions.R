@@ -366,7 +366,7 @@ rm(lith.filled.999, lith.filled.crop, lith.filled.mask, lith.999, lith.nas)
 gc()
   # end of special job to deal with 'NA' values in lithology
 }
-UP TO HERE, JUST WORK THROUGH, EVERYTHING SHOULD BE GOOD TO GO...
+
 # soils long story ----
 # soil.code2 = raster("E:/GIS working/layers/geology and soils/soils_code2_WGSextended.tif")
 # names(soil.code2) = "Soil.type (code 2)"
@@ -486,7 +486,7 @@ plot(soil, main = "Soil"); lines(bir.area.i)
 
 # Manipulate raster files ----
 
-# make lists for loopy manipulation two lists for the three extents and their specific datasets.
+# make lists for loopy manipulation: three extents and their specific datasets.
 # first make a master raster list and then crop and select relevant rasters for specific lists
 
 master.raster.list = list(rain, jant, jult, dem, twet, slop, lith, soil)
@@ -590,7 +590,7 @@ print(res(raster.list.l[[7]]))
 par(mfrow = c(2,4), mar = c(1,2,2,4))
 for (i in c(1,2,3,5,6)) {  # resampling the rest to align with elevation, #4
   raster.list.s[[i]] = resample(raster.list.s[[i]], raster.list.s[[4]], method="bilinear")
-  plot(raster.list.s[[i]], main = names(raster.list.s[[i]]))
+  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])
   print(res(raster.list.s[[i]]))  }    # good.
 # resampling lithology/soil with a different method to keep its values as integers
 raster.list.s[[7]] = resample(raster.list.s[[7]], raster.list.s[[4]], method="ngb")
@@ -635,10 +635,10 @@ install.packages("dichromat"); require(dichromat)
 # plot(b.preds[[2]], col= colorRampPalette(c("blue","red"))(20))
 
 # Plot rasters in two rows (for one row: 20 * 5 cm)
-png(filename = paste0(B.heavies.image.path,"Variable rasters(two rows)_soil set.png"), 
+png(filename = paste0(B.heavies.image.path,"Variable rasters(two rows)_israel-wide set.png"), 
     width=9, height=10, units='cm',res=600) 
 par(mfrow=c(2,4), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and right margins respectively
-buff = bir.area.s; name = raster.list.s.names; preds = preds.s # UPDATE THIS ROW
+buff = bir.area.i; name = raster.list.i.names; preds = preds.i # UPDATE THIS ROW
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
 plot(preds[[3]], col=rev(heat.colors(12)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
@@ -648,11 +648,11 @@ plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); li
 plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil/Lith
 dev.off()
 
-# Plot rasters in one row: (*could shorted this code with plot-running code discovered recently)
-png(filename = paste0(B.heavies.image.path,"Variable rasters(one row)_soil set.png"), 
+# Plot rasters in one row: (*could shorten this code with plot-running code discovered recently)
+png(filename = paste0(B.heavies.image.path,"Variable rasters(one row)_israel-wide set.png"), 
     width=14, height=5, units='cm',res=600) 
 par(mfrow=c(1,7), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and right margins respectively
-buff = bir.area.s; name = raster.list.s.names; preds = preds.s
+buff = bir.area.i; name = raster.list.i.names; preds = preds.i
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
 plot(preds[[3]], col=rev(heat.colors(12)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
@@ -661,12 +661,6 @@ plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); li
 plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop
 plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil/lith
 dev.off()
-
-# Saving the raster objects:
-saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
-saveRDS(preds.l,        paste0(B.heavies.rds.path,"preds.l.rds")) # raster stack
-saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
-saveRDS(preds.s,        paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack
 
 #######################################################################################################################
 # Importing observation datasets ----
@@ -735,7 +729,6 @@ dev.off()
 
 # Import birulatus observations *by site* introduced May 2021 ----
 library("readxl")
-getwd()
 bir.by.site = read_excel("./data/2020 11 16 Birulatus data summarised by site.xlsx")
 
 # prepare coordinates, data, and proj4string
@@ -755,7 +748,10 @@ table(b.raw$occurrence, b.raw$Birulatus) # good
 b.raw$Birulatus = NULL
 table(b.raw$occurrence)
 
-plot(b.raw, pch=21, bg='blue')
+UP TO HERE
+par(mfrow = (c(1,1)))
+b = b.raw
+plot(b, pch=21, bg='blue')
 with(b, text(b$lat ~ b$long, labels=b$Location, pos=4, cex=0.6, font=1))
 plot(bir.area.s, add=T)
 plot(bir.area.l, add=T, col=grey)
