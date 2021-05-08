@@ -1,8 +1,5 @@
 # Birulatus 2 data explore
 
-update to new terms:
-  bir.area.l and bir.area.s and israel
-
 #######################################################################################################################
 # Set up and install relevant packages and locations ----
 
@@ -63,7 +60,9 @@ borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("r
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
 
-birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
+bir.area.s = readRDS("./rds/bir.area.s.rds")
+bir.area.l = readRDS("./rds/bir.area.l.rds")
+bir.area.i = readRDS("./rds/bir.area.i.rds")
 xlims = c(35.14081, 35.86214)
 ylims = c(31.59407, 33.00496)
 
@@ -79,80 +78,71 @@ raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
 raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
 preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
 
-bi.raw = readRDS("./rds/bi.raw.rds") 
-bi = readRDS("./rds/bi.rds") 
+b.raw = readRDS("./rds/b.raw.bysite.rds")
+b     = readRDS("./rds/b.bysite.rds")
+b.s   = readRDS("./rds/b.bysite.s.rds")
+b.l   = readRDS("./rds/b.bysite.l.rds")
+b.i   = readRDS("./rds/b.bysite.i.rds")
 
 #######################################################################################################################
 # Plot layers ----
 
 plot(preds.s, main = raster.list.s.names)
 plot(preds.l, main = raster.list.l.names)
+plot(preds.i, main = raster.list.i.names)
 
 # Test for multicollinearity ----
 # Get variance inflation Factor and test for multicollinearity:
 
-preds = preds.l # instead of changing the reference many times in the code below, set it here once
-
-names(preds) 
-lstats = layerStats(preds, 'pearson', na.rm=T)
+# soil-delimited set:
+lstats = layerStats(preds.s, 'pearson', na.rm=T)
 corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
+# png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_soilset.png"),
+#     width=20, height=20, units='cm', res=600)
+pairs(preds.s, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
+# dev.off()
 
-png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_lithset.png"),
-    width=20, height=20, units='cm', res=600)
-pairs(preds, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
-dev.off()
+vif(preds.s)
+# Zuur: Some suggest that VIF values >5 or 10 are too high. In ecology vif >3 considered too much
+vifcor(preds.s) # excludes elevation & july temp from soil set. Sometimes jan & jul temp instead.
+names(preds.s) # ie get rid of #3 (jult) & #4 (elevation) 
+preds.s.nocoll = stack(preds.s[[1]],preds.s[[2]],preds.s[[5]],preds.s[[6]],preds.s[[7]])
+vif(preds.s.nocoll)
+vifcor(preds.s.nocoll, th=0.9) # no collinearity problem remaining
+saveRDS(preds.s.nocoll, paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # raster stack
 
-# Zuur: Some statisticians suggest that VIF values higher then 5 or 10 are too high. In ecology vif larger than 3 is considered too much
-vif(preds) 
-vifcor(preds)
-names(preds) # i.e. need to get rid of #3 and #4.
+# lithology-delimited study area:
+lstats = layerStats(preds.l, 'pearson', na.rm=T)
+corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
+# png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_lithset.png"),
+#     width=20, height=20, units='cm', res=600)
+pairs(preds.l, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
+# dev.off()
 
-# getting rid of elevation
-preds.l.nocoll = stack(preds[[1]],preds[[2]],preds[[5]],preds[[6]],preds[[7]])
+vif(preds.l)
+# Zuur: Some suggest that VIF values >5 or 10 are too high. In ecology vif >3 considered too much
+vifcor(preds.l) # excludes elevation & july temp from lith set. Sometimes jan & jul temp instead.
+names(preds.l) # ie get rid of #3 (jult) & #4 (elevation) 
+preds.l.nocoll = stack(preds.l[[1]],preds.l[[2]],preds.l[[5]],preds.l[[6]],preds.l[[7]])
 vif(preds.l.nocoll)
+vifcor(preds.l.nocoll, th=0.9) # no collinearity problem remaining
+saveRDS(preds.l.nocoll, paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # raster stack
 
-vifcor(preds.l.nocoll, th=0.9) # no collinearity problem (I already excluded collinear variables previously)
+# israel-wide study area:
+lstats = layerStats(preds.i, 'pearson', na.rm=T)
+corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
+# png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_lithset.png"),
+#     width=20, height=20, units='cm', res=600)
+pairs(preds.i, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
+# dev.off()
+
+vif(preds.i)
+# Zuur: Some suggest that VIF values >5 or 10 are too high. In ecology vif >3 considered too much
+vifcor(preds.i) # excludes elevation from israel set
+names(preds.i) # ie exclude #4 (elevation) 
+preds.i.nocoll = stack(preds.i[[1]],preds.i[[2]],preds.i[[3]],preds.i[[5]],preds.i[[6]],preds.i[[7]])
+vif(preds.i.nocoll)
+vifcor(preds.i.nocoll, th=0.9) # no collinearity problem remaining
+saveRDS(preds.i.nocoll, paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # raster stack
+
 # there's another function called corvif(), takes in only numerical variables. for reference.
-
-vifstep(preds, th=10) # identify collinear variables that should be excluded. doesn't work
-
-saveRDS(preds.l.nocoll,        paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # raster stack
-
-#####
-# Legacy from here down...Create Beershebensis subsets of reliable and questionable survey absence data ----
-bs
-names(bs)
-summary(bsa$questionableX)
-bsa.r = bsa[bsa$questionableX =="N",]
-length(bsa.r); length(bsa)
-saveRDS(bsa.r, "b.surveys.absence.reliables.rds")
-
-#####
-# Trying elsa package ----
-library(devtools)
-require(elsa) # for errors with this, refer to RTools installation and workaround in 'maintainR.R' script.
-
-# worked example ----
-file <- system.file('external/dem_example.grd',package='elsa')
-r <- raster(file)
-
-plot(r,main='a continuous raster map')
-
-e <- elsa(r,d=2000,categorical=FALSE)
-
-plot(e)
-# end of worked example
-
-# elsa for beershebensis predictors
-options("scipen"=100, "digits"=4) # prevent scientific notation
-deg = 110865.64762119074
-uncertainty = 10000/110865.64762119074
-
-bc.cells = cellFromXY(b.raster.list[[1]], bc)
-
-e2 = elsa(b.raster.list[[1]], d=0.09019927, categorical = FALSE, cells = bc.cells) # this line takes forever to run
-plot(e2)
-Sys.time()
-
-e3 = elsa(b.raster.list, d=0.09019927, categorical = FALSE, cells = bc.cells) # this line takes forever to run
-

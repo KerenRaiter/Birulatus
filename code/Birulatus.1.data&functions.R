@@ -494,7 +494,8 @@ par(mfrow = c(4,2), mar=c(2,2,2,2), bty="n")
 
 # diagnostic loop:
 for (i in 1:length(master.raster.list))       {
-  plot(master.raster.list[[i]], main = names(master.raster.list[[i]])); lines(bir.area.i)
+  plot(master.raster.list[[i]], main = names(master.raster.list[[i]]))
+  lines(bir.area.i)
   print(names(master.raster.list[[i]]))
   print(res(master.raster.list[[i]])); print(crs(master.raster.list[[i]]))}
 
@@ -670,9 +671,9 @@ dev.off()
 # clean version: eg bi = birulatus survey data ready for modelling
 
 # Also there are three modelling runs based on different extents:
-# bs : (smallest) study area based on 20 km buffer on presences, delimited by soils data - this cuts off the golan heights
-# bl : (second smallest) study area based on 20 km buffer on presences, lithology used as a proxy for soils
-# bi : Israel-wide (excluding waterbodies etc)
+# b.s : (smallest) study area based on 20 km buffer on presences, delimited by soils data - this cuts off the golan heights
+# b.l : (second smallest) study area based on 20 km buffer on presences, lithology used as a proxy for soils
+# b.i : Israel-wide (excluding waterbodies etc)
 
 # Originally birulatus observations per nest were used for the modelling. As of late 2020/early 2021, we transitioned to having the observations done by site (n = 23-27)
 
@@ -748,16 +749,16 @@ table(b.raw$occurrence, b.raw$Birulatus) # good
 b.raw$Birulatus = NULL
 table(b.raw$occurrence)
 
-UP TO HERE
 par(mfrow = (c(1,1)))
 b = b.raw
-plot(b, pch=21, bg='blue')
+plot(bir.area.i)
+points(b, pch=21, bg='blue')
 with(b, text(b$lat ~ b$long, labels=b$Location, pos=4, cex=0.6, font=1))
-plot(bir.area.s, add=T)
-plot(bir.area.l, add=T, col=grey)
-plot()
-plot(b[b@data$Birulatus == "Yes",],  pch=21, bg='green', cex=2, add=T)
-plot(b[b@data$Birulatus == "No",],  pch=21, bg='red', cex=2, add=TRUE)
+lines(bir.area.i, col="green")
+lines(bir.area.l, col='purple')
+lines(bir.area.s, col='orange')
+plot(b[b@data$occurrence == 1,],  pch=21, bg='green', cex=1, add=T)
+plot(b[b@data$occurrence == 0,],  pch=21, bg='red',   cex=1, add=TRUE)
 
 # subset for lithology-delimited study area:
 (b.l   = b.raw[bir.area.l, ])
@@ -765,30 +766,17 @@ plot(b[b@data$Birulatus == "No",],  pch=21, bg='red', cex=2, add=TRUE)
 # subset for soils-delimited study area:
 (b.s   = b.raw[bir.area.s, ])
 
-par(mar=c(1,1,2,1), mfrow=c(1,1))
-plot(b.raw, pch=21, bg='blue')
+# subset for israel-wide study area (redundant as none are dropped from this list)
+(b.i    = b.raw[bir.area.i, ])
 
-plot(bir.area.s)
-points(b, pch=21, bg='blue')
-(b.s   = b[bir.area.s, ])
+# saveRDS(b.raw,    "./rds/b.raw.bysite.rds")
+# saveRDS(b,        "./rds/b.bysite.rds")
+# saveRDS(b.s,      "./rds/b.bysite.s.rds")
+# saveRDS(b.l,      "./rds/b.bysite.l.rds")
+# saveRDS(b.i,      "./rds/b.bysite.i.rds")
 
-points(b[bir.area.s, ], pch=21, bg='green')
-with(b, text(b$lat ~ b$long, labels=b$Location, pos=4, cex=1, font=2))
-#drop Hispin as it's outside the soil-delimited study area boundary:
-
-
-# legend("bottomright", c("Agriculture","Built-up area","Military","Forestry","Conservation"), pch=22, pt.cex=1.5, 
-#         col=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"),
-#         pt.bg=c("chocolate","darkgrey","lightslateblue","darkgreen","lightgreen"))
-#
-
-# plot the copper column 
-plot(spdf, "Birulatus")
-
-# saveRDS(bi.raw,  "./rds/bi.raw.rds") 
-# saveRDS(bi,      "./rds/bi.rds") 
-# saveRDS(bip,      "./rds/bip.rds")
-# saveRDS(bia,      "./rds/bia.rds")
-# saveRDS(bi.s,      "./rds/bi.s.rds")
-# saveRDS(bip.s,      "./rds/bip.s.rds")
-# saveRDS(bia.s,      "./rds/bia.s.rds")
+b.raw = readRDS("./rds/b.raw.bysite.rds")
+b     = readRDS("./rds/b.bysite.rds")
+b.s   = readRDS("./rds/b.bysite.s.rds")
+b.l   = readRDS("./rds/b.bysite.l.rds")
+b.i   = readRDS("./rds/b.bysite.i.rds")

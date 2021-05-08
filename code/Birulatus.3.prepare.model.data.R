@@ -3,7 +3,7 @@
 # There are three main functions provide the main steps of developing/using species distibution models. 
 # The three steps include data preparation, model ﬁtting and evaluation, and prediction. 
 # The functions used for these steps:
-# • sdmData: to read data from diﬀerent formats, and prepare a data object. Both species (single or multiple) and 
+# • sdmData: to read data from different formats, and prepare a data object. Both species (single or multiple) and 
 # explanatory variables can be introduced to the function, as well as other information such as spatial coordinates, 
 # time, grouping variables, etc.
 # • sdm: to ﬁt and evaluate species distribution models (multiple algorithms can be used)
