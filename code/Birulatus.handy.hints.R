@@ -1,5 +1,11 @@
 # Handy mapping hints
 
+#####
+# Some standards for me to use ----
+
+# set code margin to 100 (tools-global options>code>display). International standard is 80, some use 120. This is my compromise between saving line-space and making it easy to display on various veiwers.
+
+#####
 # Mapping pretty backgrounds ----
 map <- get_stamenmap( bbox = c(left = 110, bottom = -40, right = 160, top = -10), zoom = 4, maptype = "watercolor")
 ggmap(map) + 
@@ -153,6 +159,8 @@ x.sub3 <- subset(x.df, y > 3, select = V2:V5)
 # Subsetting rows using indices
 # Another method for subsetting data sets is by using the bracket notation which designates the indices of the data set. The first index is for the rows and the second for the columns. The x.sub4 data frame contains only the observations for which the values of variable y are equal to 1. Note that leaving the index for the columns blank indicates that we want x.sub4 to contain all the variables (columns) of the original data frame.
 x.sub4 <- x.df[x.df$y == 1, ]
+# (b.s.p = b.s[b.s$occurrence == 1,]) # birulatus . soils area . presences
+# (b.s.a = b.s[b.s$occurrence == 0,]) # birulatus . soils area . absences
 
 # Subsetting rows selecting on more than one value
 # We use the %in% notation when we want to subset on multiple values of y. The x.sub5 data frame contains only the observations for which the values of variable y are equal to either 1 or 4.

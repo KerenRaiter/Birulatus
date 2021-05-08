@@ -1,15 +1,15 @@
 # Birulatus 2 data explore
 
-#######################################################################################################################
+####################################################################################################
 # Set up and install relevant packages and locations ----
 
 # ipak function: install (if not already installed) and load multiple R packages.
 ipak <- function(pkg){new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
 if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
-ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
-       "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
-       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava")) # removed sf, may be causing problems
+ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr",
+       "tidyr","rgeos","magrittr","ggplot2","gridExtra","rasterVis","dismo","sdm","installr",
+       "knitr","ggmap","OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava")) # removed sf, may be causing problems
 # installed.packages()
 installAll() # installing everything the sdm relies on.
 
@@ -50,7 +50,7 @@ B.heavies.spatial.path = 'E:/R/Birulatus_heavies/spatial/'
 B.heavies.rds.path     = 'E:/R/Birulatus_heavies/rds/'
 B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
-#######################################################################################################################
+####################################################################################################
 # Load data created previously ----
 # from this script:
 preds.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack

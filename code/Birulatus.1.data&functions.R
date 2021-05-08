@@ -663,7 +663,7 @@ plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); li
 plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil/lith
 dev.off()
 
-#######################################################################################################################
+###########################################################################################
 # Importing observation datasets ----
 # NOTE, across the scripts, there are three stages of the observations datasets:
 # .raw is the full original datasets after being cleaned and fixed, created in script #1
@@ -769,11 +769,11 @@ plot(b[b@data$occurrence == 0,],  pch=21, bg='red',   cex=1, add=TRUE)
 # subset for israel-wide study area (redundant as none are dropped from this list)
 (b.i    = b.raw[bir.area.i, ])
 
-# saveRDS(b.raw,    "./rds/b.raw.bysite.rds")
-# saveRDS(b,        "./rds/b.bysite.rds")
-# saveRDS(b.s,      "./rds/b.bysite.s.rds")
-# saveRDS(b.l,      "./rds/b.bysite.l.rds")
-# saveRDS(b.i,      "./rds/b.bysite.i.rds")
+saveRDS(b.raw,    "./rds/b.raw.bysite.rds")
+saveRDS(b,        "./rds/b.bysite.rds")
+saveRDS(b.s,      "./rds/b.bysite.s.rds")
+saveRDS(b.l,      "./rds/b.bysite.l.rds")
+saveRDS(b.i,      "./rds/b.bysite.i.rds")
 
 b.raw = readRDS("./rds/b.raw.bysite.rds")
 b     = readRDS("./rds/b.bysite.rds")

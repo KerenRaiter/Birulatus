@@ -5,16 +5,16 @@
 # • sdm: to ﬁt and evaluate species distribution models (multiple algorithms can be used)
 # • predict: when models are ﬁtted, they can be used to predict/project given a new dataset.
 
-########################################################################################################
+####################################################################################################
 # Set up and install relevant packages and locations ----
 
 # ipak function: install (if not already installed) and load multiple R packages.
 ipak <- function(pkg){new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
 if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
-ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
-       "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
-       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx"))
+ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr",
+       "tidyr","rgeos","magrittr","ggplot2","gridExtra","rasterVis","dismo","sdm","installr",
+       "knitr","ggmap","OpenStreetMap","parallel","beepr","rmapshaper","spatialEco","rJava","xlsx"))
 installAll() # installing everything the sdm relies on.
 
 emailme = function() {
@@ -69,9 +69,11 @@ B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 
 ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +towgs84=-24.002400,-17.103200,-17.844400,-0.33077,-1.85269,1.66969,5.4248 +units=m +no_defs")
 
-########################################################################################################
+####################################################################################################
 # Datasets prepared earlier ----
+
 # from this script:
+
 eval.list       = readRDS(paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))       # 'raw' list of eval data from each model
 eval.summary    = readRDS(paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
 eval.summary.df = readRDS(paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
@@ -79,18 +81,23 @@ methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by
 top.algorithms  = c('rf','brt','svm','gam')
 
 # from previous scripts:
-scenario.names          = readRDS("rds/scenario.names.rds")
-scenario.descriptions  = readRDS("rds/scenario.descriptions.rds")
-obs_packages           = readRDS("rds/obs_packages.rds")
-data_packages          = readRDS("rds/data_packages.rds")
 
-borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
-israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
-israel.noWB      = readRDS("rds/israel.noWB.rds")
+israel.WB = readRDS("rds/israel.WB.rds") # borders
+israel.WB.merged = readRDS("./rds/israel.WB.merged.rds") # borders
 
-birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
-xlims = c(35.14081, 35.86214)
-ylims = c(31.59407, 33.00496)
+b.s   = readRDS("./rds/b.bysite.s.rds")
+b.l   = readRDS("./rds/b.bysite.l.rds")
+b.i   = readRDS("./rds/b.bysite.i.rds")
+
+bir.area.s = readRDS("./rds/bir.area.s.rds")
+bir.area.l = readRDS("./rds/bir.area.l.rds")
+bir.area.i = readRDS("./rds/bir.area.i.rds")
+
+preds.s.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # stack, collinear excl.
+preds.l.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # stack, collinear excl.
+preds.i.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # stack, collinear excl. 
+
+data.packages = readRDS("rds/data.packages.rds")
 
 major.cities = readRDS("./rds/major.cities.rds")
 small.cities = readRDS("./rds/small.cities.rds")
@@ -99,17 +106,8 @@ towns        = readRDS("./rds/towns.rds")
 villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
-
-raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
-raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
-
-bi.raw = readRDS("./rds/bi.raw.rds") 
-bi     = readRDS("./rds/bi.rds") 
-bip    = readRDS("./rds/bip.rds")
-bia    = readRDS("./rds/bia.rds")
-
-########################################################################################################
+UP TO HERE
+####################################################################################################
 # Validation information for reference ----
 
 # Cross-validation, subsampling and bootstrapping are all resampling methods, but they perform resampling differently.
@@ -136,9 +134,12 @@ getmethodNames('sdm')
 # I'm going to leave out bioclim as it is a profile model which is overly simplistic. This is confirmed by its consistently low performance in models compared to the other methods. 
 # Similarly I'm going to leave out glmnet (:GLM with lasso or elasticnet regularization; https://rdrr.io/rforge/sdm/src/inst/methods/sdm/glmnet.R as it's a poor performer and has been causing some issues with some models not working.)
 
-########################################################################################################
+####################################################################################################
 # Create evaluation models for each scenario -----
 # Define input list, output list, and function 
+
+set.names = list("Soils-delimited study area", "Lithology-delimited study area", 
+                 "Israel-wide study area")
 
 # define function with 'n' runs, 'cv.folds' folds cross-validation, taking 30 percent as test: 
 sdm.cv = function(data) {
