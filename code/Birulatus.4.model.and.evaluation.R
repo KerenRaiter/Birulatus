@@ -97,7 +97,7 @@ preds.s.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # stac
 preds.l.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # stack, collinear excl.
 preds.i.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # stack, collinear excl. 
 
-data.packages = readRDS("rds/data.packages.rds")
+data.packages = readRDS("rds/data.packages.bysite.rds")
 
 major.cities = readRDS("./rds/major.cities.rds")
 small.cities = readRDS("./rds/small.cities.rds")
@@ -106,7 +106,7 @@ towns        = readRDS("./rds/towns.rds")
 villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
-UP TO HERE
+
 ####################################################################################################
 # Validation information for reference ----
 
@@ -143,25 +143,26 @@ set.names = list("Soils-delimited study area", "Lithology-delimited study area",
 
 # define function with 'n' runs, 'cv.folds' folds cross-validation, taking 30 percent as test: 
 sdm.cv = function(data) {
-  sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda','rpart','svm'), 
-      n=100, replication = 'cv', cv.folds=5) }
+  sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda',
+                                              'rpart','svm'), 
+      n=10, replication = 'cv', cv.folds=5) }
 
 # create models for each scenario 
-model.list.cv.100n = list()
+model.list.cv.10n = list()
 
-for (i in 1:length(data_packages))                                                                        {
+for (i in 1:length(data.packages))                                                                        {
   start.time = Sys.time()
-  print(scenario.names[i])
-  data = data_packages[[i]]
-  model.list.cv.100n[[i]] = sdm.cv(data)  
-  print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
+  print(set.names[i])
+  data = data.packages[[i]]
+  model.list.cv.10n[[i]] = sdm.cv(data)  
+  print(paste(set.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"),"minutes"))   }
 
-# saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
+saveRDS(model.list.cv.10n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.10n.rds"))
 beep()
 emailme()
   
 # # see how they went:
-# scenario.names[[1]]; model.list.cv.100n[[1]]
+set.names[[1]]; model.list.cv.10n[[1]]
 
 # save and/or retreive
 # saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
@@ -169,12 +170,12 @@ emailme()
 # or retreive from saved to prevent running the above code:
 # model.list.cv.100n  = readRDS(paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
 
-########################################################################################################
+####################################################################################################
 # Summarise model evaluations by methods for each scenario -----
 eval.list = list() # evaluation data by model (i.e. 4500 models:100reps x5 folds x9 algs, for each of 9 scenarios)
 eval.summary = list() # list of evaluation data, averaged by alg (i.e. 9 dataframes of 9 rows:9 scenarios X 9 algs)
 
-modelset = model.list.cv.100n # to prevent having to repeat this multiple times in the code below:
+modelset = model.list.cv.10n # to prevent having to repeat this multiple times in the code below:
 
 for (i in 1:length(modelset))                                 {
   model.inf.ev = NULL
@@ -185,20 +186,30 @@ for (i in 1:length(modelset))                                 {
   model.inf.ev = merge(model_info, model_eval, by = "modelID") # 'model.inf.ev' - a temporary vector for use in next bit.
   # then put them into list and aggregate them
   eval.list[[i]]   = model.inf.ev 
-  eval.summary[[i]]= data.frame(method=aggregate(model.inf.ev$method, by=list(model.inf.ev$method),FUN=mode)[1],
-                                scenario = scenario.names[[i]],          # keep this line relevant!
-                                TSS     = aggregate(model.inf.ev$TSS,       by=list(model.inf.ev$method),  FUN=mean)[2],
-                                TSS_sd  = aggregate(model.inf.ev$TSS,       by=list(model.inf.ev$method),  FUN=sd)  [2],
-                                AUC     = aggregate(model.inf.ev$AUC,       by=list(model.inf.ev$method),  FUN=mean)[2],
-                                AUC_sd  = aggregate(model.inf.ev$AUC,       by=list(model.inf.ev$method),  FUN=sd)  [2],
-                                kappa   = aggregate(model.inf.ev$Kappa,     by=list(model.inf.ev$method),  FUN=mean)[2],
-                                COR     = aggregate(model.inf.ev$COR,       by=list(model.inf.ev$method),  FUN=mean)[2],
-                                deviance= aggregate(model.inf.ev$Deviance,  by=list(model.inf.ev$method),  FUN=mean)[2],
-                                obs.prev= aggregate(model.inf.ev$Prevalence,by=list(model.inf.ev$method),  FUN=mean)[2],
-                                threshold= aggregate(model.inf.ev$threshold,by=list(model.inf.ev$method),  FUN=mean)[2],
-                                total.mods=aggregate(model.inf.ev$method,   by=list(model.inf.ev$method),FUN=length)[2])
-  names(eval.summary[[i]])=c('method','scenario','TSS','TSS_sd','AUC','AUC_sd','kappa','COR','deviance',
-                             'obs.prevalence','threshold.mss','total_models')   }
+  eval.summary[[i]]= data.frame(method=aggregate(model.inf.ev$method, by=list(model.inf.ev$method),
+                                                 FUN=mode)[1], set = set.names[[i]], # keep relevant!
+                                TSS     = aggregate(model.inf.ev$TSS,       
+                                                    by=list(model.inf.ev$method),  FUN=mean)[2],
+                                TSS_sd  = aggregate(model.inf.ev$TSS,       
+                                                    by=list(model.inf.ev$method),  FUN=sd)  [2],
+                                AUC     = aggregate(model.inf.ev$AUC,       
+                                                    by=list(model.inf.ev$method),  FUN=mean)[2],
+                                AUC_sd  = aggregate(model.inf.ev$AUC,       
+                                                    by=list(model.inf.ev$method),  FUN=sd)  [2],
+                                kappa   = aggregate(model.inf.ev$Kappa,     
+                                                    by=list(model.inf.ev$method),  FUN=mean)[2],
+                                COR     = aggregate(model.inf.ev$COR,       
+                                                    by=list(model.inf.ev$method),  FUN=mean)[2],
+                                deviance= aggregate(model.inf.ev$Deviance,  
+                                                    by=list(model.inf.ev$method),  FUN=mean)[2],
+                                obs.prev= aggregate(model.inf.ev$Prevalence,
+                                                    by=list(model.inf.ev$method),  FUN=mean)[2],
+                                threshold= aggregate(model.inf.ev$threshold,
+                                                     by=list(model.inf.ev$method),  FUN=mean)[2],
+                                total.mods=aggregate(model.inf.ev$method,   
+                                                     by=list(model.inf.ev$method),FUN=length)[2])
+  names(eval.summary[[i]])=c('method','scenario','TSS','TSS_sd','AUC','AUC_sd','kappa','COR',
+                             'deviance','obs.prevalence','threshold.mss','total_models')   }
 
 eval.summary
 eval.summary.df = do.call("rbind", eval.summary) # converting the list to a single dataframe for easy plotting
@@ -220,7 +231,7 @@ r = ggplot(eval.summary.df, aes(x=AUC, y=TSS, color = scenario)) + geom_point()
 r
 cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.98
 
-########################################################################################################
+####################################################################################################
 # Definining 'top' algorithims for future focus ----
 # I'm going to use TSS to define the topmodels - we have already seen that this is highly correlated with AUC.
 # To my knowledge; can't extract top models but can specify which ones to use when drawing ROC curves and running ensembles.
