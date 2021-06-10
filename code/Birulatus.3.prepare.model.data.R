@@ -80,9 +80,9 @@ data.packages          = readRDS("rds/data.packages.rds")
 
 # from previous scripts:
 
-b.s   = readRDS("./rds/b.bysite.s.rds")
-b.l   = readRDS("./rds/b.bysite.l.rds")
-b.i   = readRDS("./rds/b.bysite.i.rds")
+b.s   = readRDS("./rds/b.bysite.s.rds"); table(b.s$occurrence)
+b.l   = readRDS("./rds/b.bysite.l.rds"); table(b.l$occurrence)
+b.i   = readRDS("./rds/b.bysite.i.rds"); table(b.i$occurrence)
 
 preds.s.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # stack, collinear excl.
 preds.l.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # stack, collinear excl.

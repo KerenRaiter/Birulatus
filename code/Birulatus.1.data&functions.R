@@ -7,9 +7,10 @@
 ipak <- function(pkg){new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
 if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
-ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
-       "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
-       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","readxl")) # removed sf, may be causing problems
+ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr",
+       "tidyr","rgeos","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr", 
+       "ggmap","OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","readxl")) 
+# removed sf, may be causing problems
 # installed.packages()
 installAll() # installing everything the sdm relies on.
 
@@ -80,7 +81,8 @@ groads       = readRDS("./rds/groads.rds")
 
 # raster.list.l       = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds")); plot(raster.list.l[[1]])
 # raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds")); plot(raster.list.s[[7]])
+raster.list.s       = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+plot(raster.list.s[[7]])
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
 preds.s             = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack
 plot(preds.s)
@@ -146,7 +148,7 @@ israel.noWB = borders[borders$Label == "Israel",]; plot(israel.noWB)
 # borders.ITM = spTransform(borders, ITM)
 
 # Study area ----
-bir.area.s = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_soils") # reduced
+# bir.area.s = readOGR(dsn="E:/GIS working/layers/birulatus",layer="Birulatus_study_area_soils") # reduced
 # plot(soil, ylim=c(32.7,33), xlim=c(35.5,36)); lines(bir.area.s) # zooming in on area of interest.
 # saveRDS(bir.area.s, "./rds/bir.area.s.rds")
 bir.area.s = readRDS("./rds/bir.area.s.rds")
@@ -759,6 +761,19 @@ lines(bir.area.l, col='purple')
 lines(bir.area.s, col='orange')
 plot(b[b@data$occurrence == 1,],  pch=21, bg='green', cex=1, add=T)
 plot(b[b@data$occurrence == 0,],  pch=21, bg='red',   cex=1, add=TRUE)
+
+png(filename = "./images/birulatus sites presence absence.png", 
+    width = 12, height = 15, units ='cm', res = 600)
+par(mar=c(0,0,0,0), mfrow = (c(1,1)))
+plot(bir.area.i)
+points(b, pch=21, bg='blue')
+with(b, text(b$lat ~ b$long, labels=b$Location, pos=4, cex=0.6, font=1))
+lines(bir.area.i, col="green")
+lines(bir.area.l, col='purple')
+lines(bir.area.s, col='orange')
+plot(b[b@data$occurrence == 1,],  pch=21, bg='green', cex=1, add=T)
+plot(b[b@data$occurrence == 0,],  pch=21, bg='red',   cex=1, add=TRUE)
+dev.off()
 
 # subset for lithology-delimited study area:
 (b.l   = b.raw[bir.area.l, ])

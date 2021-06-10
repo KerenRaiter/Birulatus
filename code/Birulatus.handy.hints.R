@@ -554,7 +554,7 @@ values(r) <- sample(x = 1:10,size = ncell(r),replace = T)
 writeRaster(r,'test.tif',options=c('TFW=YES'))
 
 #####
-# convert strings fro, upper case to lower case and vice versa ----
+# convert strings from upper case to lower case and vice versa ----
 toupper("rd")
 tolower("RF")
 #####
@@ -675,7 +675,7 @@ union(e1, e2)
   
 
 #####
-# Cool plot with two lines plotted seperately on differen axes ----
+# Cool plot with two lines plotted seperately on different axes ----
 x <- 1:100
 y1 <- rnorm(100)
 y2 <- rnorm(100)+100
@@ -1015,6 +1015,20 @@ spplot(spdf, "copper")
 # Choose a file interactively -----
 # It’s also possible to choose a file interactively using the function file.choose(), which I recommend if you’re a beginner in R programming:
   my_data <- read_excel(file.choose())
+
+#####
+# 
+# Control number of decimal digits in print output ----
+
+options(digits=3)
+
+#####
+# 
+# Collapse all code sections ----
+
+# Edit > folding > collapse all
+# or:
+# Alt + O
 
 #####
 # 

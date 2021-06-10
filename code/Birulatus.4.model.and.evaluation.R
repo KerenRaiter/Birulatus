@@ -15,6 +15,7 @@ sapply(pkg, require, character.only = TRUE)}
 ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr",
        "tidyr","rgeos","magrittr","ggplot2","gridExtra","rasterVis","dismo","sdm","installr",
        "knitr","ggmap","OpenStreetMap","parallel","beepr","rmapshaper","spatialEco","rJava","xlsx"))
+# xlsx fails
 installAll() # installing everything the sdm relies on.
 
 emailme = function() {
@@ -145,26 +146,32 @@ set.names = list("Soils-delimited study area", "Lithology-delimited study area",
 sdm.cv = function(data) {
   sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda',
                                               'rpart','svm'), 
-      n=10, replication = 'cv', cv.folds=5) }
+      n=40, replication = 'cv', cv.folds=5) }
 
 # create models for each scenario 
-model.list.cv.10n = list()
+model.list.cv.40n = list()
 
 for (i in 1:length(data.packages))                                                                        {
   start.time = Sys.time()
   print(set.names[i])
   data = data.packages[[i]]
-  model.list.cv.10n[[i]] = sdm.cv(data)  
+  model.list.cv.40n[[i]] = sdm.cv(data)  
   print(paste(set.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"),"minutes"))   }
 
-saveRDS(model.list.cv.10n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.10n.rds"))
+saveRDS(model.list.cv.40n, paste0(B.heavies.rds.path,"model.list.cv.40n.rds"))
 beep()
 emailme()
   
 # # see how they went:
-set.names[[1]]; model.list.cv.10n[[1]]
+set.names[[1]]; model.list.cv.40n[[1]] # gam, brt and rf didn't work
+set.names[[2]]; model.list.cv.40n[[2]] # gam, brt and rf didn't work
+set.names[[3]]; model.list.cv.40n[[3]] # gam, brt and rf didn't work
 
-# save and/or retreive
+getVarImp(model.list.cv.40n[[1]])
+getVarImp(model.list.cv.40n[[2]])
+getVarImp(model.list.cv.40n[[3]])
+
+# save and/or retrieve
 # saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
 
 # or retreive from saved to prevent running the above code:
@@ -172,22 +179,23 @@ set.names[[1]]; model.list.cv.10n[[1]]
 
 ####################################################################################################
 # Summarise model evaluations by methods for each scenario -----
-eval.list = list() # evaluation data by model (i.e. 4500 models:100reps x5 folds x9 algs, for each of 9 scenarios)
+eval.list = list() # evaluation data by model (i.e. 4500 models:100reps x5folds x9algs x9scenarios)
 eval.summary = list() # list of evaluation data, averaged by alg (i.e. 9 dataframes of 9 rows:9 scenarios X 9 algs)
 
-modelset = model.list.cv.10n # to prevent having to repeat this multiple times in the code below:
+modelset = model.list.cv.40n # to prevent having to repeat this multiple times in the code below:
 
 for (i in 1:length(modelset))                                 {
   model.inf.ev = NULL
-  # extract model info and eval statistics and merge them (change name of model list as appropriate):
+  # extract model info and eval statistics and merge them:
   model_info = getModelInfo (modelset[[i]])
   model_eval = getEvaluation(modelset[[i]], wtest= 'test.dep', 
-                             stat=c('TSS','Kappa','AUC','COR','Deviance','obs.prevalence','threshold'), opt=2)
-  model.inf.ev = merge(model_info, model_eval, by = "modelID") # 'model.inf.ev' - a temporary vector for use in next bit.
+                             stat=c('TSS','Kappa','AUC','COR','Deviance','obs.prevalence',
+                                    'threshold'), opt=2)
+  model.inf.ev = merge(model_info, model_eval, by = "modelID") #temporary vector for use in next bit
   # then put them into list and aggregate them
   eval.list[[i]]   = model.inf.ev 
   eval.summary[[i]]= data.frame(method=aggregate(model.inf.ev$method, by=list(model.inf.ev$method),
-                                                 FUN=mode)[1], set = set.names[[i]], # keep relevant!
+                                                 FUN=mode)[1], set = set.names[[i]], #keep relevant!
                                 TSS     = aggregate(model.inf.ev$TSS,       
                                                     by=list(model.inf.ev$method),  FUN=mean)[2],
                                 TSS_sd  = aggregate(model.inf.ev$TSS,       
@@ -212,14 +220,14 @@ for (i in 1:length(modelset))                                 {
                              'deviance','obs.prevalence','threshold.mss','total_models')   }
 
 eval.summary
-eval.summary.df = do.call("rbind", eval.summary) # converting the list to a single dataframe for easy plotting
+(eval.summary.df = do.call("rbind", eval.summary)) # converting the list to a single dataframe for easy plotting
 
 
 # saving the outputs from the 5-fold, 100-replicate run evaluation
 saveRDS(eval.list,       paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))      # 'raw' list of eval data from each model
 saveRDS(eval.summary,    paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
 saveRDS(eval.summary.df, paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
-write.xlsx(eval.summary,    paste0(B.heavies.rds.path, "model evaluation summary.xlsx")) # export to excel sprdsheet
+write.xlsx(eval.summary,    paste0(B.heavies.rds.path, "model evaluation summary.xlsx")) # export to excel sprdsheet - fails
 write.xlsx(eval.summary.df, paste0(B.heavies.rds.path, "model evaluation summary onetable.xlsx"))
 
 # Plot relationship between TSS and AUC
@@ -232,7 +240,7 @@ r
 cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.98
 
 ####################################################################################################
-# Definining 'top' algorithims for future focus ----
+# Defining 'top' algorithims for future focus ----
 # I'm going to use TSS to define the topmodels - we have already seen that this is highly correlated with AUC.
 # To my knowledge; can't extract top models but can specify which ones to use when drawing ROC curves and running ensembles.
 
@@ -262,11 +270,12 @@ lower.end = methods.summary$TSS.mean - methods.summary$TSS.sd
 upper.end = methods.summary$TSS.mean + methods.summary$TSS.sd
 
 par(mfrow = c(1,1))
-png(filename = paste0(B.heavies.image.path,"Comparing algorithm performance by TSS.withbars.png"), 
+png(filename = paste0(B.heavies.image.path,"Algorithm performance by TSS.withbars.by site.png"), 
     width=14, height=8, units='cm', res=300)
 par(mgp=c(2,0.5,0),mar=c(3,3,0,0)+0.1)
 plot(methods.summary$TSS[,1], bg=methods.summary$method, pch=21, cex=1.5, 
-     ylim = range(c(lower.end, upper.end)),xlim=c(1,9.5), xlab="Algorithm",xaxt='n',ylab="Average TSS")
+     ylim = range(c(lower.end, upper.end)),xlim=c(1,9.5), 
+     xlab="Algorithm",xaxt='n',ylab="Average TSS")
 with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary),
                            labels=methods.summary$method, pos=4, cex=0.9, offset=0.35))
 #legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), pt.bg=c(1:9),pch=21,cex=1.5,text.font=1)
@@ -279,7 +288,7 @@ dev.off()
 lower.end = min(methods.summary$TSS.mean)
 upper.end = max(methods.summary$TSS.mean)
 
-png(filename = paste0(B.heavies.image.path,"Comparing algorithm performance by TSS.nobars.png"), 
+png(filename = paste0(B.heavies.image.path,"Algorithm performance by TSS.nobars. by site.png"), 
     width=14, height=8, units='cm', res=300)
 par(mgp=c(2,0.5,0),mar=c(3,3,0,0))
 plot(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5, xlab="Algorithm",xaxt='n',ylab="Average TSS",
@@ -292,11 +301,13 @@ with(methods.summary, text(methods.summary$TSS.mean ~ rownames(methods.summary),
 dev.off()
 
 # Plot TSS by SD for all models (summarised by scenario-alg combination)
-png(filename = paste0(B.heavies.image.path,"Variability of algorithm performance.png"), 
+png(filename = paste0(B.heavies.image.path,"Variability of algorithm performance.by site.png"), 
     width=20, height=12, units='cm', res=600)
 plot(methods.summary$TSS.mean, methods.summary$TSS.sd, pch=21, bg=methods.summary$method, 
-     xlab="Algorithm average performance (mean TSS)", ylab="Performance variability (TSS standard deviation)", 
-     xlim=c(0.48,0.785), ylim = c(0.09, 0.14))
+     xlab="Algorithm average performance (mean TSS)", 
+     ylab="Performance variability (TSS standard deviation)", 
+     # xlim=c(0.48,0.785), ylim = c(0.09, 0.14)
+     )
 points(methods.summary$TSS.mean[methods.summary$method == "rf"], methods.summary$TSS.sd[methods.summary$method == "rf"],
        pch=21, bg= "green3", cex=1.5)
 points(methods.summary$TSS.mean[methods.summary$method == "svm"], 
@@ -311,193 +322,9 @@ with(methods.summary, text(methods.summary$TSS.sd ~ methods.summary$TSS.mean,
 dev.off()
 # Performance of the top 3 methods is as consistent as any other methods. The SD of TSS for the top RF models in particularly low.
 
-# maybe obsolete:
-# to plot ROC curves of topmodels:
-roc(model.list.cv.100n[[i]][1], method = TSS_topmods_methods[[i]], smooth = T, cex.lab = 0.7, cex.main = 0.8, pin= c(5.5, 5.3))
-
 # Outputs from top model selection ----
 write.xlsx(methods.summary, "./data/model evaluation summary (aggregated by method).xlsx")
 # top models are RF, BRT, SVM, and GAM (CART is up there too, but so similar to BRT, not considered to add much)
 
-########################################################################################################
-# the code below here is legacy...
-# ROC curves for all models ----
-scenario.names # exisitng list of packages
-par("oma") # outer margin margins - can leave these at zero.
-par(mar=c(1,1,1,1))  # sets the bottom, left, top and right margins respectively. Units are 'lines of text'.
-methods = c("rf","svm","gam","brt","mda","cart","rpart","glm","fda")
-
-for (i in 1:length(scenario.names)) {
- start.time = Sys.time()
- filename = paste0(heavies.image.path,scenario.names[[i]],' - ROC all methods.png')
- png(filename = filename, width = 15, height = 16, units = "cm", res = 600)
- roc(model.list.cv.100n[[i]], method = methods, smooth = T, cex.lab = 0.8, cex.main = 0.8)
- dev.off() 
- print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes")) }
-
-# ROC curves for top 3 models ----
-# step 1: run just the top models (optional)  ----
-
-# make topmodels list (to avoid remaking full model list): 
-{
-  sdm.tops = function(data) {sdm(occurrence ~ ., data = data, methods = c('gam','rf','svm'), 
-      n=100, replication = 'cv', cv.folds=5) }
-
-# create models for each scenario 
-model.list.cv.tops = list()
-
-for (i in 1:length(s.6scen.scen.names))                                                                        {
-  start.time = Sys.time();  print(s.6scen.scen.names[i])
-  data = s.6scen.data.packages[[i]]
-  model.list.cv.tops[[i]] = sdm.tops(data)  
-  print(paste(s.6scen.scen.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"), "minutes"))   }
-saveRDS(model.list.cv.tops, paste0(heavies.rds.path,"S.model.list.cv.tops.rds"))
-  
-emailme()
-}
-# or just designate the model set from above that you're using:
-
-modelset = model.list.cv.tops # to prevent multiple repetitions of exact model set name below:
-
-# step 2: make the curves and save to .png individually -----
-# step 2a: run the first combo (top row) separately, to give it titles:
-i = 1
-start_time = Sys.time()
-scenario.letter = list ("A","B","C","D","E","F","G","H","I")
-
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - RF.png')
-  png(filename = filename, width = 9.975, height = 5.7, units = "cm", res = 300)
-  par(mar = c(0,2,1.5,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
-  roc(modelset[[i]], method = "rf",  smooth = T, cex.axis = 0.9, tck=-0.03, cex.main = 1.4, main= "Random forests")
-  text(x = 0.03, y = 0.94, labels = scenario.letter[[i]],cex = 1.3, xpd = NA)
-  dev.off()
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - SVM.png')
-  png(filename = filename, width = 9.5, height = 5.7, units = "cm", res = 300)
-  par(mar = c(0,0,1.5,0)) # bottom, left, top, and right
-  roc(modelset[[i]],method = "svm",  smooth = T, cex.main = 1.4, main= "Support vector machines")
-  dev.off()
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - GAM.png')
-  png(filename = filename, width = 9.5, height = 5.7, units = "cm", res = 300)
-  par(mar = c(0,0,1.5,0)) # bottom, left, top, and right
-  roc(modelset[[i]],method = "gam",  smooth = T, cex.main = 1.4, main= "Generalised additive models")
-  dev.off()
-  
-  print(paste(s.6scen.scen.names[[i]],"loop took", difftime(Sys.time(),start_time, units="mins"), "minutes")) 
-  
-# step 2b: run the middle rows (no titles, no x-axis labels):
-for (i in 2:(length(s.6scen.scen.names)-1))                                                                  {
-  start_time = Sys.time()
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - RF.png')
-  png(filename = filename, width = 9.975, height = 5.225, units = "cm", res = 300)
-  par(mar = c(0,2,0,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
-  roc(modelset[[i]],method = "rf",  smooth = T, cex.axis = 0.9, tck=-0.02, main = NULL)
-  text(x = 0.03, y = 0.94, labels = scenario.letter[[i]],cex = 1.3, xpd = NA)
-  dev.off() 
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - SVM.png')
-  png(filename = filename, width = 9.5, height = 5.225, units = "cm", res = 300)
-  par(mar = c(0,0,0,0)) # bottom, left, top, and right
-  roc(modelset[[i]],method = "svm",  smooth = T, main = NULL)
-  dev.off()
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - GAM.png')
-  png(filename = filename, width = 9.5, height = 5.225, units = "cm", res = 300)
-  par(mar = c(0,0,0,0)) # bottom, left, top, and right
-  roc(modelset[[i]],method = "gam",  smooth = T, main = NULL)
-  dev.off()
-  
-  print(paste(s.6scen.scen.names[[i]],"loop took", difftime(Sys.time(),start_time, units="mins"), "minutes"))}
-
-# step 2c: run the last combo separately, to give it X-axis labels: 
-i = 6 {
-start_time = Sys.time()
-
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - RF.png')
-  png(filename = filename, width = 9.975, height = 6.65, units = "cm", res = 300)
-  par(mar = c(3,2,0,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
-  roc(modelset[[i]],method = "rf",  smooth = T, cex.axis = 0.9, tck=-0.02, main= NULL)
-  text(x = 0.02, y = 0.95, labels = scenario.letter[[i]],cex = 1.3, xpd = NA)
-  dev.off()
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - SVM.png')
-  png(filename = filename, width = 9.5, height = 6.65, units = "cm", res = 300)
-  par(mar = c(3,0,0,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
-  roc(modelset[[i]],method = "svm",  smooth = T, cex.lab = 0.7, cex.main = 0.8, main= NULL)
-  dev.off()
-  
-  filename = paste0(heavies.image.path,"ROC ", s.6scen.scen.names[[i]],' - GAM.png')
-  png(filename = filename, width = 9.5, height = 6.65, units = "cm", res = 300)
-  par(mar = c(3,0,0,0), mgp=c(3, 0.5, 0), las=1) # bottom, left, top, and right
-  roc(modelset[[i]],method = "gam",  smooth = T, cex.lab = 0.7, cex.main = 0.8, main= NULL)
-  dev.off()
-}
-  print(paste(s.6scen.scen.names[[i]],"loop took", difftime(Sys.time(),start_time, units="mins"), "minutes")) 
-
-# step 3: combine plots (for want of a better way to do this!) ----
-
-# ROC - All scenarios - top models plot for Beershebensis:
-{
-png(filename = paste0(heavies.image.path,"B.ROC - All scenarios - top models.png"), 
-                      width=26, height=40, units="cm", res=600)
-par(mar = c(1,1,0,0), mgp=c(0,0,0)) 
-# mgp sets distance between (1) axis titles and axes and (2) axis labels and the axes. Default is mgp = c(3, 0.1, 0).
-plot(0:9, 0:9, type = "n", xaxt = "n", yaxt = "n", 
-     xlab = "1 - Specificity (false positive rate)", ylab = "Sensitivity (true positive rate)", bty="n")
-
-i=1 # scenario A # numbers at end: xstart, ystart, xend, yend
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 7.8, 3, 9) 
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 7.8, 6, 9)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 7.8, 9, 9)
-
-i=2 # scenario B
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 6.8, 3, 7.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 6.8, 6, 7.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 6.8, 9, 7.8)
-
-1=3 # scenario C
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 5.8, 3, 6.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 5.8, 6, 6.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 5.8, 9, 6.8)
-
-1=4 # scenario D
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 4.8, 3, 5.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 4.8, 6, 5.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 4.8, 9, 5.8)
-
-i=5 # scenario E
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 3.8, 3, 4.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 3.8, 6, 4.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 3.8, 9, 4.8)
-
-i=6 # scenario F
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 2.8, 3, 3.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 2.8, 6, 3.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 2.8, 9, 3.8)
-
-i=7 # scenario G
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 1.8, 3, 2.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 1.8, 6, 2.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 1.8, 9, 2.8)
-
-i=8 # scenario H
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, 0.8, 3, 1.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, 0.8, 6, 1.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, 0.8, 9, 1.8)
-
-i=9 # scenario I
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - RF.png")),  -.3, -.4, 3, 0.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - SVM.png")),   3, -.4, 6, 0.8)
-rasterImage(readPNG(source = paste0(heavies.image.path,"ROC ",scenario.names[[i]], " - GAM.png")),   6, -.4, 9, 0.8)
-
-dev.off()
-}
-
-  
-# can extract ROC values to plot mannually, but a bit time consuming!
-# ROC = list() 
-# for ... loop...
-# ROC = getRoc(model.list.cv.100n[[i]],method = "gam", smooth = T)
-# lines(ROC[[i]][,1] ~ ROC[[i]][,2])
+####################################################################################################
+# the end of this script

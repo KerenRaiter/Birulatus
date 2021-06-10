@@ -1,6 +1,6 @@
 # sdm.5.model.prediction and mapping ----
 
-########################################################################################################
+####################################################################################################
 # Set up and install relevant packages and locations ----
 
 # clear user interface and free memory:
@@ -13,8 +13,8 @@ gc()
 ipak <- function(pkg){new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
 if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
-ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr","tidyr","rgeos",
-       "magrittr","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr","ggmap",
+ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr",
+       "tidyr","rgeos","ggplot2","gridExtra","rasterVis","dismo","sdm","installr","knitr","ggmap",
        "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx"))
 installAll() # installing everything the sdm relies on.
 
