@@ -1024,7 +1024,7 @@ options(digits=3)
 
 #####
 # 
-# Collapse all code sections ----
+# Collapse all code sections (code folding) ----
 
 # Edit > folding > collapse all
 # or:

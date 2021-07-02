@@ -258,12 +258,14 @@ methods.summary = methods.summary[,c(1,4,2,5,3)] # getting them back in a nice o
 (methods.summary = methods.summary[order(-methods.summary$TSS.mean),])
 rownames(methods.summary) <- 1:nrow(methods.summary)
 methods.summary
-methods.summary$method = factor(methods.summary$method, levels=methods.summary$method[order(-methods.summary$TSS.mean)])
+methods.summary$method = factor(methods.summary$method, 
+                                levels=methods.summary$method[order(-methods.summary$TSS.mean)])
 write.xlsx(methods.summary,"./data/methods.summary.xlsx") # export to excel sprdsheet
 saveRDS(methods.summary, "./rds/methods.summary.rds")
 
 # plot TSS by method, with error bars:
-palette(c("red","magenta","blue","cyan","green3","brown","gray","purple","yellow")) # adding&changing colour palette (default has 8 only)
+palette(c("red","magenta","blue","cyan","green3","brown","gray","purple","yellow")) 
+# adding&changing colour palette (default has 8 only)
 algorithm = 1:9
 
 lower.end = methods.summary$TSS.mean - methods.summary$TSS.sd
@@ -278,9 +280,10 @@ plot(methods.summary$TSS[,1], bg=methods.summary$method, pch=21, cex=1.5,
      xlab="Algorithm",xaxt='n',ylab="Average TSS")
 with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary),
                            labels=methods.summary$method, pos=4, cex=0.9, offset=0.35))
-#legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), pt.bg=c(1:9),pch=21,cex=1.5,text.font=1)
+#legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), 
+#  pt.bg=c(1:9),pch=21,cex=1.5,text.font=1)
 arrows(algorithm, lower.end, algorithm,   upper.end,  length=0.05, angle=90, code=3)
-points(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.4) # just putting points on top of lines
+points(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.4) # put points on top
 dev.off()
 
 # plot without error bars:
@@ -308,8 +311,8 @@ plot(methods.summary$TSS.mean, methods.summary$TSS.sd, pch=21, bg=methods.summar
      ylab="Performance variability (TSS standard deviation)", 
      # xlim=c(0.48,0.785), ylim = c(0.09, 0.14)
      )
-points(methods.summary$TSS.mean[methods.summary$method == "rf"], methods.summary$TSS.sd[methods.summary$method == "rf"],
-       pch=21, bg= "green3", cex=1.5)
+points(methods.summary$TSS.mean[methods.summary$method == "rf"], 
+       methods.summary$TSS.sd[methods.summary$method == "rf"], pch=21, bg= "green3", cex=1.5)
 points(methods.summary$TSS.mean[methods.summary$method == "svm"], 
        methods.summary$TSS.sd[methods.summary$method == "svm"],  pch=21, bg= "yellow", cex=1.5)
 points(methods.summary$TSS.mean[methods.summary$method == "gam"], 

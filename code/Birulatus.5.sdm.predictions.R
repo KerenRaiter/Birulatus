@@ -15,7 +15,7 @@ if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
 ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr",
        "tidyr","rgeos","ggplot2","gridExtra","rasterVis","dismo","sdm","installr","knitr","ggmap",
-       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx"))
+       "OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","xlsx","readxl"))
 installAll() # installing everything the sdm relies on.
 
 emailme = function() {
@@ -74,19 +74,21 @@ eval.list       = readRDS(paste0(B.heavies.rds.path, "eval.list.topmethods.rds")
 eval.summary    = readRDS(paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
 eval.summary.df = readRDS(paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
 # methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
-top.algs        = c('rf','brt','svm','gam')
-top.algs.l      = list('rf','brt','svm','gam')
+top.algs        = c('svm')
+top.algs.l      = list('svm')
 
-scenario.names          = readRDS("rds/scenario.names.rds")
-scenario.descriptions  = readRDS("rds/scenario.descriptions.rds")
-obs_packages           = readRDS("rds/obs_packages.rds")
-data_packages          = readRDS("rds/data_packages.rds")
+set.names = list("Soils-delimited study area", "Lithology-delimited study area", 
+                 "Israel-wide study area")
+data.packages          = readRDS("./rds/data.packages.bysite.rds")
 
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
 israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
 
-birulatus.study  = readRDS("rds/birulatus.study.rds") # study area
+bir.area.s = readRDS("./rds/bir.area.s.rds")
+bir.area.l = readRDS("./rds/bir.area.l.rds")
+bir.area.i = readRDS("./rds/bir.area.i.rds")
+
 xlims = c(35.14081, 35.86214)
 ylims = c(31.59407, 33.00496)
 
@@ -94,68 +96,79 @@ major.cities = readRDS("./rds/major.cities.rds")
 small.cities = readRDS("./rds/small.cities.rds")
 large.towns  = readRDS("./rds/large.towns.rds")
 towns        = readRDS("./rds/towns.rds")
-villages     = readRDS("./rds/villages.rds")
 
 groads       = readRDS("./rds/groads.rds")
 
-raster.list       = readRDS(paste0(B.heavies.rds.path,"raster.list.rds"))
-raster.list.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-preds             = readRDS(paste0(B.heavies.rds.path,"preds.rds")) # raster stack
-preds.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack
+raster.list.s  = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
+raster.list.l  = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
+raster.list.i  = readRDS(paste0(B.heavies.rds.path,"raster.list.i.rds"))
+
+raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
+raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+raster.list.i.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+
+# preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack. Slow.
+# preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # raster stack. Slow.
+# preds.i = readRDS(paste0(B.heavies.rds.path,"preds.i.rds")) # raster stack. Slow.
+
+preds.s.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # raster stack
+preds.l.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # raster stack
+preds.i.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # raster stack
+preds = list(preds.s.nocoll, preds.l.nocoll, preds.i.nocoll)
 
 bi.raw = readRDS("./rds/bi.raw.rds") 
 bi     = readRDS("./rds/bi.rds") 
 bip    = readRDS("./rds/bip.rds")
 bia    = readRDS("./rds/bia.rds")
 
-########################################################################################################
+####################################################################################################
 # Complete models  ----
 
 # create models for each combo
 model.list.complete = list()
 
-for (i in 1:length(data_packages))                                                                        {
+for (i in 1:length(data.packages))  {
   start.time = Sys.time()
-  print(scenario.names[i])
-  data = data_packages[[i]]
+  print(set.names[i])
+  data = data.packs[[i]]
   model.list.complete[[i]] = sdm(occurrence ~ ., data = data, methods = top.algs)
-  print(paste(scenario.names[[i]]," loop took ", difftime(Sys.time(),start.time, units="mins")," minutes"))}
+  print(paste(set.names[[i]]," loop took ",difftime(Sys.time(),start.time, units="mins")," minutes"))}
 
 # # see how they went:
-# b_scenario.names[[1]]; b.model.list.complete[[1]]
-# b_scenario.names[[2]]; b.model.list.complete[[2]]
-# b.model.list.complete[[i]][[5]]
+# set.names[[1]]; model.list.complete[[1]]
+# set.names[[2]]; model.list.complete[[2]]
+# model.list.complete[[i]][[5]]
 
 ########################################################################################################
 # Predict the model outputs ----
 
 for (a in 1:length(top.algs)) { assign ( paste0("predmaps.",top.algs[[a]]), list() ) } # instead of 1 by 1
 
-for (i in 1:length(scenario.names))                                                           {
+for (i in 1:length(set.names))                                                           {
   start.time       = Sys.time()
   par(mar=c(2,2,2,1))
 
-  filename.rf  = paste0(B.heavies.spatial.path, 'Prediction ', scenario.names[[i]], ' - RF.tif')
-  predmaps.rf[[i]] = predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.rf, 
-                             format="GTiff", overwrite=TRUE, w=1, nc=20)
-  plot(predmaps.rf[[i]], main=paste(scenario.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
+  # filename.rf  = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - RF.tif')
+  # predmaps.rf[[i]] = predict(model.list.complete[[i]], newdata = preds[[i]], filename = filename.rf, 
+  #                            format="GTiff", overwrite=TRUE, w=1, nc=20)
+  # plot(predmaps.rf[[i]], main=paste(set.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
+  # 
+  # filename.brt  = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - BRT.tif')
+  # predmaps.brt[[i]] = predict(model.list.complete[[i]], newdata=preds[[i]], filename = filename.brt, 
+  #                            format="GTiff", overwrite=TRUE, w=2, nc=20)
+  # plot(predmaps.brt[[i]], main=paste(set.names[[i]],"BRT, TSS =", eval.summary[[i]][4,"TSS"]))
+   
+  filename.svm = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - SVM.tif')
+  predmaps.svm[[i]]= predict(model.list.complete[[i]], newdata=preds[[i]], filename = filename.svm, 
+                             format="GTiff", overwrite=TRUE, w=1, nc=20) # w is model number
+  plot(predmaps.svm[[i]], main=paste(set.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
   
-  filename.brt  = paste0(B.heavies.spatial.path, 'Prediction ', scenario.names[[i]], ' - BRT.tif')
-  predmaps.brt[[i]] = predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.brt, 
-                             format="GTiff", overwrite=TRUE, w=2, nc=20)
-  plot(predmaps.brt[[i]], main=paste(scenario.names[[i]],"BRT, TSS =", eval.summary[[i]][4,"TSS"]))
-  
-  filename.svm = paste0(B.heavies.spatial.path, 'Prediction ', scenario.names[[i]], ' - SVM.tif')
-  predmaps.svm[[i]]= predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.svm, 
-                             format="GTiff", overwrite=TRUE, w=3, nc=20)
-  plot(predmaps.svm[[i]], main=paste(scenario.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
-  
-  filename.gam = paste0(B.heavies.spatial.path, 'Prediction ', scenario.names[[i]], ' - GAM.tif')
-  predmaps.gam[[i]]= predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.gam, 
-                             format="GTiff", overwrite=TRUE, w=4, nc=20)
-  plot(predmaps.gam[[i]], main=paste(scenario.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))
+  # filename.gam = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - GAM.tif')
+  # predmaps.gam[[i]]= predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.gam, 
+  #                            format="GTiff", overwrite=TRUE, w=4, nc=20)
+  # plot(predmaps.gam[[i]], main=paste(set.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))
 
-  print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
+  print(paste(set.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
 
 # how to view model info:
 # summary(predmaps.gam[[i]])
@@ -167,8 +180,18 @@ saveRDS(predmaps.gam, paste0(B.heavies.rds.path, "predmaps.gam.rds"))
 
 emailme() # send an email when the loop is complete:
 
+# save predictions as images
+for(i in 1:length(set.names))  {
+  filename.svm     = paste0(B.heavies.image.path, 'Prediction ', set.names[[i]], ' - SVM.png')
+  png(filename     = filename.svm, width = 18, height = 30, units = 'cm', res = 600)
+  plot(predmaps.svm[[i]], 
+       main=paste(set.names[[i]],"SVM, TSS =", 
+                  eval.summary[[i]][eval.summary[[i]]$method == "svm","TSS"]))
+  dev.off()
+}
+
 ########################################################################################################
-# Retreive predicted outcomes: (only if previous section not run) legacy ----
+# Retrieve predicted outcomes: (only if previous section not run) legacy ----
 # 
 # eval.summary = readRDS("./rds_objects/eval.summary.5fold.100reps.rds")  
 # 
@@ -178,50 +201,51 @@ emailme() # send an email when the loop is complete:
 
 # # load from rasters, plot, and save full images 
 {
-# for(i in 1:length(scenario.names))                                                                       {
+# for(i in 1:length(set.names))                                                                       {
 #  
-#   filename.rf      = paste('./output_images/Prediction', scenario.names[[i]], '- RF.tif')
+#   filename.rf      = paste('./output_images/Prediction', set.names[[i]], '- RF.tif')
 #   predmaps.rf[[i]] = raster(filename.rf)
-#   plot(predmaps.rf[[i]], main=paste(scenario.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
+#   plot(predmaps.rf[[i]], main=paste(set.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
 #   
-#   filename.svm      = paste('./output_images/Prediction', scenario.names[[i]], '- SVM.tif')
+#   filename.svm      = paste('./output_images/Prediction', set.names[[i]], '- SVM.tif')
 #   predmaps.svm[[i]] = raster(filename.svm)
-#   plot(predmaps.svm[[i]], main=paste(scenario.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
+#   plot(predmaps.svm[[i]], main=paste(set.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
 #   
-#   filename.gam     = paste('./output_images/Prediction', scenario.names[[i]], '- GAM.tif')
+#   filename.gam     = paste('./output_images/Prediction', set.names[[i]], '- GAM.tif')
 #   predmaps.gam[[i]] = raster(filename.gam)
-#   plot(predmaps.gam[[i]], main=paste(scenario.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))   }
+#   plot(predmaps.gam[[i]], main=paste(set.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))   }
 # 
 # lsos()
 # 
 # # Save plots as full-colur pictures ----
-# for(i in 1:length(scenario.names))                                                                    {
+# for(i in 1:length(set.names))                                                                    {
 #   
-#   filename.rf      = paste('./output_images/Predicted probabilities', scenario.names[[i]], '- RF.png')
+#   filename.rf      = paste('./output_images/Predicted probabilities', set.names[[i]], '- RF.png')
 #   png(filename     = filename.rf, width = 18, height = 15, units = 'cm', res = 600)
-#   plot(predmaps.rf[[i]], main=paste(scenario.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
+#   plot(predmaps.rf[[i]], main=paste(set.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
 #   dev.off()
 #   
-#   filename.svm     = paste('./output_images/Predicted probabilities', scenario.names[[i]], '- SVM.png')
+#   filename.svm     = paste('./output_images/Predicted probabilities', set.names[[i]], '- SVM.png')
 #   png(filename     = filename.svm, width = 18, height = 15, units = 'cm', res = 600)
-#   plot(predmaps.svm[[i]], main=paste(scenario.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
+#   plot(predmaps.svm[[i]], main=paste(set.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
 #   dev.off()
 #   
-#   filename.gam      = paste('./output_images/Predicted probabilities', scenario.names[[i]], '- GAM.png')
+#   filename.gam      = paste('./output_images/Predicted probabilities', set.names[[i]], '- GAM.png')
 #   png(filename      = filename.gam, width = 18, height = 15, units = 'cm', res = 600)
-#   plot(predmaps.gam[[i]], main=paste(scenario.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"])) 
+#   plot(predmaps.gam[[i]], main=paste(set.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"])) 
 #   dev.off()                                                                                            }
 }
 
-########################################################################################################
+####################################################################################################
 # Map predicted occurrence with threshold that maximises sensitivity plus specificity ----
 
 # set up lists:
 for (a in 1:length(top.algs)) { assign ( paste0("occmaps.",top.algs[[a]]), list() ) }
-top.algs.evalsum.num = list(5,4,9,3)
+top.algs.evalsum.num = list(3,3,2)
+# top.algs.evalsum.num = list(1)   # 5,4,9,3 removed from list parentheses
 
 # run loop for occurrence mapping:
-for (i in 1:length(scenario.names))                                                                 {
+for (i in 1:length(set.names))                                                                 {
   start.time = Sys.time()
   
   for (a in 1:length(top.algs.l)){
@@ -242,7 +266,7 @@ for (i in 1:length(scenario.names))                                             
     points(x=threshold, y=0, pch=24, bg='red')
   
     # make an image:
-    pngname=paste0(B.heavies.image.path,'Predicted distribution ',scenario.names[[i]],' - ',
+    pngname=paste0(B.heavies.image.path,'Predicted distribution ',set.names[[i]],' - ',
                    toupper(top.algs[[a]]),'.png')
     png(filename = pngname, width = 10, height = 14, units = 'cm', res = 600)
     par(mar = c(0,0,2,0), bty="n")
@@ -251,14 +275,57 @@ for (i in 1:length(scenario.names))                                             
     # alternatively: plot(predmaps.rf[[i]],col=c('white','green'),breaks=c(0,threshold.rf,1))
     dev.off()
     
-    tifname  = paste0(B.heavies.spatial.path,'Predicted distribution ', scenario.names[[i]],' - ',
+    tifname  = paste0(B.heavies.spatial.path,'Predicted distribution ', set.names[[i]],' - ',
                       toupper(top.algs[[a]]),'.tif')
     writeRaster(occurrencemap, filename = tifname, options=c('TFW=YES'), overwrite= TRUE)
   
     # assign occurrence map to list:
-    assign ( paste0("occmaps.",top.algs[[a]])[[i]], occurrencemap )
+    # assign ( paste0("occmaps.", top.algs[[a]])[[i]], occurrencemap ) this line fails
     print(paste(top.algs[[a]],"sub-loop took", difftime(Sys.time(), alg.start.time, units="mins"), "minutes"))}
-    print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
+    print(paste(set.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
+
+# occurrence maps manually as something wasn't working:
+{
+threshold.list = list()
+   # run loop for occurrence mapping:
+ # for (i in 1:length(set.names))                                                                 {
+    start.time = Sys.time()
+  
+      # set threshold:
+      threshold = eval.summary[[i]][top.algs.evalsum.num[[a]], "threshold.mss"]
+      
+      # assign prediction:
+      occurrencemap = eval(parse(text = paste0("predmaps.",top.algs.l[[a]])))[[i]]
+      
+      # apply threshold:
+      occurrencemap [ occurrencemap < threshold ] <- 0
+      # optional - make all cells above threshold equal to one:
+      # occurrencemap [occurrencemap >= threshold ] <- 1
+      
+      # make a histogram of the cell values
+      hist(eval(parse(text = paste0("predmaps.",top.algs.l[[a]])))[[i]], main = top.algs[[a]])
+      points(x=threshold, y=0, pch=24, bg='red')
+      
+      # make an image:
+      pngname=paste0(B.heavies.image.path,'Predicted distribution ',set.names[[i]],' - ',
+                     toupper(top.algs[[a]]),'.png')
+      png(filename = pngname, width = 10, height = 14, units = 'cm', res = 600)
+      par(mar = c(0,0,2,0), bty="n")
+      plot(occurrencemap, 
+           main = paste0(toupper(top.algs.l[[a]])," TSS = ", round(eval.summary[[i]][top.algs.evalsum.num[[a]],"TSS"],2)))
+      # alternatively: plot(predmaps.rf[[i]],col=c('white','green'),breaks=c(0,threshold.rf,1))
+      dev.off()
+      
+      tifname  = paste0(B.heavies.spatial.path,'Predicted distribution ', set.names[[i]],' - ',
+                        toupper(top.algs[[a]]),'.tif')
+      writeRaster(occurrencemap, filename = tifname, options=c('TFW=YES'), overwrite= TRUE)
+      
+      # assign occurrence map to list:
+      assign ( paste0("occmaps.",top.algs[[a]])[[i]], occurrencemap )
+      print(paste(top.algs[[a]],"sub-loop took", difftime(Sys.time(), alg.start.time, units="mins"), "minutes"))}
+    print(paste(set.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
+  
+}
 
 saveRDS(occmaps.rf,  paste0(B.heavies.rds.path,"occmaps.rf.rds"))
 saveRDS(occmaps.brt, paste0(B.heavies.rds.path,"occmaps.brt.rds"))
@@ -272,7 +339,7 @@ plot(occmaps.rf[[i]], frame.plot=FALSE) # checking coordinate ranges for text pl
 png(filename = paste0(B.heavies.image.path,"Predicted distributions by algorithm.png"), 
                     width = 24, height = 11, units = "cm", res = 400)
 par(mfrow=c(1,4), mar = c(0,0,2,4), mgp=c(0,0,0), bty="n")
-for (i in 1:length(scenario.names))                           {
+for (i in 1:length(set.names))                           {
   for (a in 1:length(top.algs.l))      {
     occmap = eval(parse(text = paste0("occmaps.",top.algs[[a]])))[[i]]
     plot(occmap, axes=FALSE, ann=FALSE )
@@ -284,7 +351,7 @@ dev.off()
 
   # distribution map image and raster sub-loop
   {
-  pngname.rf   = paste0(heavies.image.path,'Predicted distribution ', scenario.names[[i]], ' - RF.png')
+  pngname.rf   = paste0(heavies.image.path,'Predicted distribution ', set.names[[i]], ' - RF.png')
   png(filename = pngname.rf, width = 14, height = 25, units = 'cm', res = 600) 
   par(mar = c(2,2,0,0), mgp=c(2,0.5,0)) # , bty="n"
   plot(s.occmaps.rf[[i]], xlim=c(34.27173, 35.3248), ylim=c(31.12667, 33.10742),legend=F) 
@@ -299,10 +366,10 @@ dev.off()
                     pch=16, col=c("purple","pink","darkblue","deepskyblue2"), cex=1)
   dev.off()
   
-  tifname.rf  = paste0(heavies.spatial.path,'Predicted distribution ', scenario.names[[i]], ' - RF.tif')
+  tifname.rf  = paste0(heavies.spatial.path,'Predicted distribution ', set.names[[i]], ' - RF.tif')
   writeRaster(s.occmaps.rf[[i]], filename = tifname.rf, options=c('TFW=YES'), overwrite= TRUE)
   
-  pngname.svm   = paste0(heavies.image.path,'Predicted distribution ', scenario.names[[i]], ' - SVM.png')
+  pngname.svm   = paste0(heavies.image.path,'Predicted distribution ', set.names[[i]], ' - SVM.png')
   png(filename  = pngname.svm, width = 14, height = 25, units = 'cm', res = 600)
   par(mar = c(2,2,0,0), mgp=c(2,0.5,0)) # , bty="n"
   plot(s.occmaps.svm[[i]],legend=F) 
@@ -316,10 +383,10 @@ dev.off()
                     pch=16, col=c("purple","pink","darkblue","deepskyblue2"), cex=1)
   dev.off()
   
-  tifname.svm  = paste0(heavies.spatial.path,'Predicted distribution ', scenario.names[[i]], ' - SVM.tif')
+  tifname.svm  = paste0(heavies.spatial.path,'Predicted distribution ', set.names[[i]], ' - SVM.tif')
   writeRaster(s.occmaps.svm[[i]], filename = tifname.svm, options=c('TFW=YES'), overwrite=TRUE)
   
-  pngname.gam   = paste0(heavies.image.path,'Predicted distribution ', scenario.names[[i]], ' - GAM.png')
+  pngname.gam   = paste0(heavies.image.path,'Predicted distribution ', set.names[[i]], ' - GAM.png')
   png(filename  = pngname.gam, width = 14, height = 25, units = 'cm', res = 600)
   par(mar = c(2,2,0,0), mgp=c(2,0.5,0)) # , bty="n"
   plot(s.occmaps.gam[[i]],legend=F)
@@ -333,10 +400,10 @@ dev.off()
                     pch=16, col=c("purple","pink","darkblue","deepskyblue2"), cex=1)
   dev.off()
   
-  tifname.gam  = paste0(heavies.spatial.path,'Predicted distribution ', scenario.names[[i]], ' - GAM.tif')
+  tifname.gam  = paste0(heavies.spatial.path,'Predicted distribution ', set.names[[i]], ' - GAM.tif')
   writeRaster(s.occmaps.gam[[i]], filename = tifname.gam, options=c('TFW=YES'), overwrite=TRUE)       
   
-print(paste(scenario.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
+print(paste(set.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
 
 
 
@@ -351,7 +418,7 @@ png(plot, filename = filename, width = 17, height = 25.7, units = "cm", res = 10
 plot(package.ensembles[[i]])
 dev.off()
 
-class(b.model.list.complete[[i]])
+class(model.list.complete[[i]])
 
 # changing model settings:
 # you can change the setting by using the modelSettings argument in the sdm function. Eg to change brt trees:

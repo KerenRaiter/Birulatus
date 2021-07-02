@@ -775,11 +775,11 @@ plot(b[b@data$occurrence == 1,],  pch=21, bg='green', cex=1, add=T)
 plot(b[b@data$occurrence == 0,],  pch=21, bg='red',   cex=1, add=TRUE)
 dev.off()
 
-# subset for lithology-delimited study area:
-(b.l   = b.raw[bir.area.l, ])
-
 # subset for soils-delimited study area:
 (b.s   = b.raw[bir.area.s, ])
+
+# subset for lithology-delimited study area:
+(b.l   = b.raw[bir.area.l, ])
 
 # subset for israel-wide study area (redundant as none are dropped from this list)
 (b.i    = b.raw[bir.area.i, ])

@@ -53,7 +53,9 @@ B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 ####################################################################################################
 # Load data created previously ----
 # from this script:
-preds.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.nocoll.rds")) # raster stack
+preds.s.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # raster stack
+preds.l.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # raster stack
+preds.i.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # raster stack
 
 # from previous scripts:
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
@@ -84,7 +86,7 @@ b.s   = readRDS("./rds/b.bysite.s.rds")
 b.l   = readRDS("./rds/b.bysite.l.rds")
 b.i   = readRDS("./rds/b.bysite.i.rds")
 
-#######################################################################################################################
+####################################################################################################
 # Plot layers ----
 
 plot(preds.s, main = raster.list.s.names)

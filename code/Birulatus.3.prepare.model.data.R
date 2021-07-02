@@ -117,10 +117,19 @@ b.s = points.list[[1]];  b.l = points.list[[2]]; b.i = points.list[[3]]
 data.pack.s = sdmData(formula = occurrence ~ ., train = b.s, predictors = preds.s.nocoll)
 data.pack.l = sdmData(formula = occurrence ~ ., train = b.l, predictors = preds.l.nocoll)
 data.pack.i = sdmData(formula = occurrence ~ ., train = b.i, predictors = preds.i.nocoll)
-data.packages = list(data.pack.s, data.pack.l, data.pack.i)
+data.packs = list(data.pack.s, data.pack.l, data.pack.i)
+
+# Why are there only 23 obs in data.pack.l? there should be 24. 
+length(b.l)     # 24 observations
+data.pack.l     # 23 observations
+# Convert dataset to tibble and use tidyverse to remove duplictes:
+b.l.tibble = as_tibble(b.l)
+b.l.tibble.unique = b.l.tibble %>% distinct(long, lat, .keep_all = TRUE)
+b.l.tibble.unique # 24 are unique... so mystery is unsolved
+plot(data.pack.l@features)
 
 # main output objects from this section:
 
-saveRDS(data.packages,         "./rds/data.packages.bysite.rds")
+saveRDS(data.packs,         "./rds/data.packages.bysite.rds")
 
 ####################################################################################################
