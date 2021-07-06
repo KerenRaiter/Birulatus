@@ -483,6 +483,7 @@ gc()
 # gc()
 # # end of special job to deal with 'NA' values in categorical layers.
  }
+# soils short story ----
 soil = readRDS(paste0(B.heavies.rds.path,"soil.code1.filled.rds"))
 plot(soil, main = "Soil"); lines(bir.area.i)
 
@@ -536,11 +537,11 @@ for (i in 1:length(master.raster.list))       {
 # now separate out the raster lists for the different extents:
 raster.list.s = master.raster.list[c(1:6,8)]
 raster.list.l = master.raster.list[c(1:7)]
-raster.list.i = master.raster.list[c(1:7)]
+raster.list.i = master.raster.list[c(1:6)]
 
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
 raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-raster.list.i.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+raster.list.i.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop")
 
 # loops to crop all rasters to the same extent for each list:
 
@@ -565,17 +566,17 @@ for (i in 1:length(raster.list.i))                                  {
 # use resample to make all rasters have the same resolution as the elevation layer
 # NOTE: takes several minutes to run
 
-# resampling loop for israel-wide raster list
+#resampling loop for soils-delimited raster list
 par(mfrow = c(2,4), mar = c(1,2,2,4))
 for (i in c(1,2,3,5,6)) {  # resampling the rest to align with elevation, #4
-  raster.list.i[[i]] = resample(raster.list.i[[i]], raster.list.i[[4]], method="bilinear")
-  plot(raster.list.i[[i]], main = raster.list.i.names[[i]])
-  print(res(raster.list.i[[i]]))  }    # good.
+  raster.list.s[[i]] = resample(raster.list.s[[i]], raster.list.s[[4]], method="bilinear")
+  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])
+  print(res(raster.list.s[[i]]))  }    # good.
 # resampling lithology/soil with a different method to keep its values as integers
-raster.list.i[[7]] = resample(raster.list.i[[7]], raster.list.i[[4]], method="ngb")
-table(raster.list.i[[7]][]) # check that all values remain integers
-plot(raster.list.i[[7]], main = raster.list.i.names[7])
-print(res(raster.list.i[[7]]))
+raster.list.s[[7]] = resample(raster.list.s[[7]], raster.list.s[[4]], method="ngb")
+table(raster.list.s[[7]][])
+plot(raster.list.s[[7]], main = raster.list.s.names[7])
+print(res(raster.list.s[[7]]))
 
 #resampling loop for lithology-delimited raster list
 par(mfrow = c(2,4), mar = c(1,2,2,4))
@@ -589,17 +590,18 @@ table(raster.list.l[[7]][])
 plot(raster.list.l[[7]], main = raster.list.l.names[7])
 print(res(raster.list.l[[7]]))
 
-#resampling loop for soils-delimited raster list
-par(mfrow = c(2,4), mar = c(1,2,2,4))
+# resampling loop for israel-wide raster list
+par(mfrow = c(2,3), mar = c(1,2,2,4))
 for (i in c(1,2,3,5,6)) {  # resampling the rest to align with elevation, #4
-  raster.list.s[[i]] = resample(raster.list.s[[i]], raster.list.s[[4]], method="bilinear")
-  plot(raster.list.s[[i]], main = raster.list.s.names[[i]])
-  print(res(raster.list.s[[i]]))  }    # good.
-# resampling lithology/soil with a different method to keep its values as integers
-raster.list.s[[7]] = resample(raster.list.s[[7]], raster.list.s[[4]], method="ngb")
-table(raster.list.s[[7]][])
-plot(raster.list.s[[7]], main = raster.list.s.names[7])
-print(res(raster.list.s[[7]]))
+  raster.list.i[[i]] = resample(raster.list.i[[i]], raster.list.i[[4]], method="bilinear")
+  plot(raster.list.i[[i]], main = raster.list.i.names[[i]])
+  print(res(raster.list.i[[i]]))  }    # good.
+# (removing the next 5 rows as lithology now excluded from israel-wise layer:)
+# # resampling lithology/soil with a different method to keep its values as integers
+# raster.list.i[[7]] = resample(raster.list.i[[7]], raster.list.i[[4]], method="ngb")
+# table(raster.list.i[[7]][]) # check that all values remain integers
+# plot(raster.list.i[[7]], main = raster.list.i.names[7])
+# print(res(raster.list.i[[7]]))
 
 
 # Stack, make images, and save raster objects ----
@@ -609,23 +611,22 @@ print(res(raster.list.s[[7]]))
 
 # saveRDS(raster.list.s,  paste0(B.heavies.rds.path,"raster.list.s.rds"))
 # saveRDS(raster.list.l,  paste0(B.heavies.rds.path,"raster.list.l.rds"))
-# saveRDS(raster.list.i,  paste0(B.heavies.rds.path,"raster.list.i.rds"))
+# saveRDS(raster.list.i,  paste0(B.heavies.rds.path,"raster.list.i (excl lith).rds"))
 
 raster.list.s  = readRDS(paste0(B.heavies.rds.path,"raster.list.s.rds"))
 raster.list.l  = readRDS(paste0(B.heavies.rds.path,"raster.list.l.rds"))
-raster.list.i  = readRDS(paste0(B.heavies.rds.path,"raster.list.i.rds"))
+raster.list.i  = readRDS(paste0(B.heavies.rds.path,"raster.list.i (excl lith).rds"))
 
 # saveRDS(preds.s, paste0(B.heavies.rds.path,"preds.s.rds"))
 # saveRDS(preds.l, paste0(B.heavies.rds.path,"preds.l.rds"))
-# saveRDS(preds.i, paste0(B.heavies.rds.path,"preds.i.rds"))
+# saveRDS(preds.i, paste0(B.heavies.rds.path,"preds.i (excl lith).rds"))
 
 preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack. Slow.
 preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # raster stack. Slow.
-preds.i = readRDS(paste0(B.heavies.rds.path,"preds.i.rds")) # raster stack. Slow.
+preds.i = readRDS(paste0(B.heavies.rds.path,"preds.i (excl lith).rds")) # raster stack. Slow.
 
 # make bricks but don't bother saving them; brick RDSs don't save the content
 brick.s = brick(raster.list.s)
-
 
 # # experimenting with colour palettes:
 par(mfrow=c(2,3), mar=c(1,1,1,1))
@@ -633,18 +634,21 @@ par(mfrow=c(2,3), mar=c(1,1,1,1))
 # plot(b.preds[[2]], col= (rainbow(12, s = 1, v = 1, start = 0, end = 1))) 
 # plot(b.preds[[2]], col= rev(heat.colors(12))) 
 # plot(b.preds[[2]], col= (heat.colors(12)))
-install.packages("dichromat"); require(dichromat)
+
+# install.packages("dichromat"); 
+require(dichromat)
 # plot(b.preds[[2]], col= colorRampPalette(c("blue","red"))(10)) # beauty!
 # plot(b.preds[[2]], col= colorRampPalette(c("blue","red"))(20))
 
 # Plot rasters in two rows (for one row: 20 * 5 cm)
-png(filename = paste0(B.heavies.image.path,"Variable rasters(two rows)_israel-wide set.png"), 
+# for israel-wide, width=7, mfrow=c(2,3) & comment out seventh plot) 
+png(filename = paste0(B.heavies.image.path,"Variable rasters (two rows)_israel-wide set.png"), 
     width=9, height=10, units='cm',res=600) 
-par(mfrow=c(2,4), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and right margins respectively
+par(mfrow=c(2,4), mar=c(0,0.5,2,0), bty="n") # sets the bottom, left, top and right margins respectively
 buff = bir.area.i; name = raster.list.i.names; preds = preds.i # UPDATE THIS ROW
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
-plot(preds[[3]], col=rev(heat.colors(12)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
+plot(preds[[3]], col=rev(heat.colors(8)),  main=name[[3]], legend=F, axes=F); lines(buff) # Jult
 plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # DEM
 plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # TWet
 plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop
@@ -652,13 +656,14 @@ plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); li
 dev.off()
 
 # Plot rasters in one row: (*could shorten this code with plot-running code discovered recently)
-png(filename = paste0(B.heavies.image.path,"Variable rasters(one row)_israel-wide set.png"), 
+# for israel-wide, width=12, mfrow=c(1,6) & comment out seventh plot) 
+png(filename = paste0(B.heavies.image.path,"Variable rasters (one row)_israel-wide set.png"), 
     width=14, height=5, units='cm',res=600) 
 par(mfrow=c(1,7), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and right margins respectively
 buff = bir.area.i; name = raster.list.i.names; preds = preds.i
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
-plot(preds[[3]], col=rev(heat.colors(12)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
+plot(preds[[3]], col=rev(heat.colors(8)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
 plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # DEM
 plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # TWet
 plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop

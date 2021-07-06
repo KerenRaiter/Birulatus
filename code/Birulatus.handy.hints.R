@@ -1032,3 +1032,34 @@ options(digits=3)
 
 #####
 # 
+
+# GitHub personal access token ----
+
+# from https://gist.github.com/Z3tt/3dab3535007acf108391649766409421
+
+## set your user name and email:
+usethis::use_git_config(user.name = "KerenRaiter", user.email = "keren.raiter@me.com")
+
+## create a personal access token for authentication:
+usethis::create_github_token() 
+## in case usethis version < 2.0.0: usethis::browse_github_token() (or even better: update usethis!)
+
+
+## set personal access token:
+credentials::set_github_pat("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")
+
+## or store it manually in '.Renviron':
+usethis::edit_r_environ()`
+## store your personal access token with: GITHUB_PAT=xxxyyyzzz
+## and make sure '.Renviron' ends with a newline
+
+# 4. Verify settings
+
+usethis::git_sitrep()
+
+## Your username and email should be stated correctly in the output. 
+## Also, the report shoud cotain something like:
+## 'Personal access token: '<found in env var>''
+
+?git_vaccinate
+usethis::git_vaccinate()

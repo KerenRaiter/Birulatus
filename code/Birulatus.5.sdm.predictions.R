@@ -74,8 +74,8 @@ eval.list       = readRDS(paste0(B.heavies.rds.path, "eval.list.topmethods.rds")
 eval.summary    = readRDS(paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
 eval.summary.df = readRDS(paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
 # methods.summary = readRDS("./rds/s.eval.summary.df.topmethods.rds") # summary by method, in order.
-top.algs        = c('svm')
-top.algs.l      = list('svm')
+top.algs        = c('fda','svm','rf')
+top.algs.l      = list('fda','svm','rf')
 
 set.names = list("Soils-delimited study area", "Lithology-delimited study area", 
                  "Israel-wide study area")
@@ -105,7 +105,7 @@ raster.list.i  = readRDS(paste0(B.heavies.rds.path,"raster.list.i.rds"))
 
 raster.list.s.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Soil")
 raster.list.l.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
-raster.list.i.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop", "Lith")
+raster.list.i.names = list("Rain", "Jant", "Jult", "DEM", "TWet", "Slop")
 
 # preds.s = readRDS(paste0(B.heavies.rds.path,"preds.s.rds")) # raster stack. Slow.
 # preds.l = readRDS(paste0(B.heavies.rds.path,"preds.l.rds")) # raster stack. Slow.
@@ -116,10 +116,11 @@ preds.l.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) #
 preds.i.nocoll      = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # raster stack
 preds = list(preds.s.nocoll, preds.l.nocoll, preds.i.nocoll)
 
-bi.raw = readRDS("./rds/bi.raw.rds") 
-bi     = readRDS("./rds/bi.rds") 
-bip    = readRDS("./rds/bip.rds")
-bia    = readRDS("./rds/bia.rds")
+b.raw = readRDS("./rds/b.raw.bysite.rds")
+b     = readRDS("./rds/b.bysite.rds")
+b.s   = readRDS("./rds/b.bysite.s.rds")
+b.l   = readRDS("./rds/b.bysite.l.rds")
+b.i   = readRDS("./rds/b.bysite.i.rds")
 
 ####################################################################################################
 # Complete models  ----
@@ -137,56 +138,74 @@ for (i in 1:length(data.packages))  {
 # # see how they went:
 # set.names[[1]]; model.list.complete[[1]]
 # set.names[[2]]; model.list.complete[[2]]
+# set.names[[3]]; model.list.complete[[3]]
 # model.list.complete[[i]][[5]]
 
 ########################################################################################################
-# Predict the model outputs ----
+# Predict species occurrence probability over whole study area ----
 
 for (a in 1:length(top.algs)) { assign ( paste0("predmaps.",top.algs[[a]]), list() ) } # instead of 1 by 1
 
-for (i in 1:length(set.names))                                                           {
+for (i in 1:length(set.names))                                                           { # takes ~5 mins
   start.time       = Sys.time()
   par(mar=c(2,2,2,1))
 
-  # filename.rf  = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - RF.tif')
-  # predmaps.rf[[i]] = predict(model.list.complete[[i]], newdata = preds[[i]], filename = filename.rf, 
-  #                            format="GTiff", overwrite=TRUE, w=1, nc=20)
-  # plot(predmaps.rf[[i]], main=paste(set.names[[i]],"RF, TSS =", eval.summary[[i]][5,"TSS"]))
-  # 
-  # filename.brt  = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - BRT.tif')
-  # predmaps.brt[[i]] = predict(model.list.complete[[i]], newdata=preds[[i]], filename = filename.brt, 
-  #                            format="GTiff", overwrite=TRUE, w=2, nc=20)
-  # plot(predmaps.brt[[i]], main=paste(set.names[[i]],"BRT, TSS =", eval.summary[[i]][4,"TSS"]))
-   
+  # FDA:
+  filename.fda  = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - FDA.tif')
+  predmaps.fda[[i]] = predict(model.list.complete[[i]], newdata=preds[[i]], filename = filename.fda,
+                            format="GTiff", overwrite=TRUE, w = 1, nc=4) # w is model number
+  plot(predmaps.fda[[i]], main=paste(set.names[[i]],"FDA, TSS =", 
+                                     eval.summary[[i]][eval.summary[[i]]$method == "fda","TSS"]))
+
+  # SVM:
   filename.svm = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - SVM.tif')
   predmaps.svm[[i]]= predict(model.list.complete[[i]], newdata=preds[[i]], filename = filename.svm, 
-                             format="GTiff", overwrite=TRUE, w=1, nc=20) # w is model number
-  plot(predmaps.svm[[i]], main=paste(set.names[[i]],"SVM, TSS =", eval.summary[[i]][9,"TSS"]))
+                             format="GTiff", overwrite=TRUE, w = 2, nc=4) # nc is number of comp cores
+  plot(predmaps.svm[[i]], main=paste(set.names[[i]],"SVM, TSS =", 
+                                     eval.summary[[i]][eval.summary[[i]]$method == "svm","TSS"]))
   
-  # filename.gam = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - GAM.tif')
-  # predmaps.gam[[i]]= predict(model.list.complete[[i]], newdata=preds.nocoll, filename = filename.gam, 
-  #                            format="GTiff", overwrite=TRUE, w=4, nc=20)
-  # plot(predmaps.gam[[i]], main=paste(set.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"]))
+  # RF:
+  filename.rf  = paste0(B.heavies.spatial.path, 'Prediction ', set.names[[i]], ' - RF.tif')
+  predmaps.rf[[i]] = predict(model.list.complete[[i]], newdata = preds[[i]], filename = filename.rf,
+                            format="GTiff", overwrite=TRUE, w = 3, nc=4)
+  plot(predmaps.rf[[i]], main=paste(set.names[[i]],"RF, TSS =", 
+                                    eval.summary[[i]][eval.summary[[i]]$method == "rf","TSS"]))
 
   print(paste(set.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
 
 # how to view model info:
 # summary(predmaps.gam[[i]])
 
-saveRDS(predmaps.rf,  paste0(B.heavies.rds.path, "predmaps.rf.rds"))
-saveRDS(predmaps.brt, paste0(B.heavies.rds.path, "predmaps.brt.rds"))
-saveRDS(predmaps.svm, paste0(B.heavies.rds.path, "predmaps.svm.rds"))
-saveRDS(predmaps.gam, paste0(B.heavies.rds.path, "predmaps.gam.rds"))
+saveRDS(predmaps.fda, paste0(B.heavies.rds.path, "predmaps.rf.rds"))
+saveRDS(predmaps.svm, paste0(B.heavies.rds.path, "predmaps.brt.rds"))
+saveRDS(predmaps.rf,  paste0(B.heavies.rds.path, "predmaps.svm.rds"))
 
+beep()
 emailme() # send an email when the loop is complete:
 
 # save predictions as images
 for(i in 1:length(set.names))  {
+
+  filename.fda     = paste0(B.heavies.image.path, 'Prediction ', set.names[[i]], ' - FDA.png')
+  png(filename     = filename.fda, width = 18, height = 30, units = 'cm', res = 600)
+  plot(predmaps.fda[[i]], 
+       main = paste(set.names[[i]],"FDA, TSS =", 
+                  eval.summary[[i]][eval.summary[[i]]$method == "fda","TSS"]))
+  dev.off()
+  
   filename.svm     = paste0(B.heavies.image.path, 'Prediction ', set.names[[i]], ' - SVM.png')
   png(filename     = filename.svm, width = 18, height = 30, units = 'cm', res = 600)
   plot(predmaps.svm[[i]], 
-       main=paste(set.names[[i]],"SVM, TSS =", 
+       main = paste(set.names[[i]],"SVM, TSS =", 
                   eval.summary[[i]][eval.summary[[i]]$method == "svm","TSS"]))
+  dev.off()
+  
+  
+  filename.rf      = paste0(B.heavies.image.path, 'Prediction ', set.names[[i]], ' - RF.png')
+  png(filename     = filename.rf, width = 18, height = 30, units = 'cm', res = 600)
+  plot(predmaps.rf[[i]], 
+       main = paste(set.names[[i]],"RF, TSS =", 
+                  eval.summary[[i]][eval.summary[[i]]$method == "rf","TSS"]))
   dev.off()
 }
 
@@ -233,10 +252,40 @@ for(i in 1:length(set.names))  {
 #   filename.gam      = paste('./output_images/Predicted probabilities', set.names[[i]], '- GAM.png')
 #   png(filename      = filename.gam, width = 18, height = 15, units = 'cm', res = 600)
 #   plot(predmaps.gam[[i]], main=paste(set.names[[i]],"GAM, TSS =", eval.summary[[i]][3,"TSS"])) 
-#   dev.off()                                                                                            }
+#   dev.off()                                                                                      }
 }
 
 ####################################################################################################
+# NEW: ensemble accross multiple methods ----
+
+set.ensembles = list()
+
+for(i in 1:length(set.names)) {
+
+  file = paste0(B.heavies.spatial.path, 'Ensemble prediction - ', set.names[[i]], '.tif')
+  set.ensembles[[i]] = ensemble(model.list.complete[[i]], preds[[i]], filename=file, overwrite=TRUE, 
+                                setting=list(method ='weighted', stat='TSS', opt=2)) 
+                                 # opt=2 selects for max(sensitivity + specificity)
+  
+  file = paste0(B.heavies.image.path, 'Ensemble prediction - ', set.names[[i]], '.png')
+  png(plot, filename = file, width = 18, height = 30, units = "cm", res = 100)
+  plot(set.ensembles[[i]])
+  dev.off()
+  }
+beep()  
+
+
+# How to make an ensemble of just the models with high TSS, weighted by TSS:
+id = eval.list[[i]]$modelID[models$TSS > 0.5]
+package.ensembles[[i]] = ensemble(model.list[[i]], b.preds, filename = filename, overwrite=TRUE, 
+                                  setting=list(method ='weighted', stat='TSS', opt=2, id=id))
+png(plot, filename = filename, width = 17, height = 25.7, units = "cm", res = 100)
+plot(package.ensembles[[i]])
+dev.off()
+
+
+# On 6/7/2021 I inserted a section above here to calculate ensembles across different methods prior to creating occurrence maps ----
+
 # Map predicted occurrence with threshold that maximises sensitivity plus specificity ----
 
 # set up lists:

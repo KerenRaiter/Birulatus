@@ -146,30 +146,30 @@ set.names = list("Soils-delimited study area", "Lithology-delimited study area",
 sdm.cv = function(data) {
   sdm(occurrence ~ ., data = data, methods =c("cart",'fda','gam','brt','rf','glm', 'mda',
                                               'rpart','svm'), 
-      n=40, replication = 'cv', cv.folds=5) }
+      n=100, replication = 'cv', cv.folds=5) }
 
 # create models for each scenario 
-model.list.cv.40n = list()
+model.list.cv.100n = list()
 
 for (i in 1:length(data.packages))                                                                        {
   start.time = Sys.time()
   print(set.names[i])
   data = data.packages[[i]]
-  model.list.cv.40n[[i]] = sdm.cv(data)  
+  model.list.cv.100n[[i]] = sdm.cv(data)  
   print(paste(set.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"),"minutes"))   }
 
-saveRDS(model.list.cv.40n, paste0(B.heavies.rds.path,"model.list.cv.40n.rds"))
+saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"model.list.cv.100n.rds"))
 beep()
 emailme()
   
 # # see how they went:
-set.names[[1]]; model.list.cv.40n[[1]] # gam, brt and rf didn't work
-set.names[[2]]; model.list.cv.40n[[2]] # gam, brt and rf didn't work
-set.names[[3]]; model.list.cv.40n[[3]] # gam, brt and rf didn't work
+set.names[[1]]; model.list.cv.100n[[1]] # gam and brt didn't work, rpart gives NaN
+set.names[[2]]; model.list.cv.100n[[2]] # gam and brt didn't work, rpart gives NaN
+set.names[[3]]; model.list.cv.100n[[3]] # gam and brt didn't work, rpart is OK.
 
-getVarImp(model.list.cv.40n[[1]])
-getVarImp(model.list.cv.40n[[2]])
-getVarImp(model.list.cv.40n[[3]])
+getVarImp(model.list.cv.100n[[1]])
+getVarImp(model.list.cv.100n[[2]])
+getVarImp(model.list.cv.100n[[3]])
 
 # save and/or retrieve
 # saveRDS(model.list.cv.100n, paste0(B.heavies.rds.path,"B.heavies.rds.path/model.list.cv.100n.rds"))
@@ -182,7 +182,7 @@ getVarImp(model.list.cv.40n[[3]])
 eval.list = list() # evaluation data by model (i.e. 4500 models:100reps x5folds x9algs x9scenarios)
 eval.summary = list() # list of evaluation data, averaged by alg (i.e. 9 dataframes of 9 rows:9 scenarios X 9 algs)
 
-modelset = model.list.cv.40n # to prevent having to repeat this multiple times in the code below:
+modelset = model.list.cv.100n # to prevent having to repeat this multiple times in the code below:
 
 for (i in 1:length(modelset))                                 {
   model.inf.ev = NULL
@@ -227,8 +227,8 @@ eval.summary
 saveRDS(eval.list,       paste0(B.heavies.rds.path, "eval.list.topmethods.rds"))      # 'raw' list of eval data from each model
 saveRDS(eval.summary,    paste0(B.heavies.rds.path, "eval.summary.topmethods.rds"))    # consolidated: multiple reps averaged
 saveRDS(eval.summary.df, paste0(B.heavies.rds.path, "eval.summary.df.topmethods.rds")) # superconsolidate:all scenarios, 1 table)
-write.xlsx(eval.summary,    paste0(B.heavies.rds.path, "model evaluation summary.xlsx")) # export to excel sprdsheet - fails
-write.xlsx(eval.summary.df, paste0(B.heavies.rds.path, "model evaluation summary onetable.xlsx"))
+# write.xlsx(eval.summary,    paste0(B.heavies.rds.path, "model evaluation summary.xlsx")) # export to excel sprdsheet - fails
+# write.xlsx(eval.summary.df, paste0(B.heavies.rds.path, "model evaluation summary onetable.xlsx"))
 
 # Plot relationship between TSS and AUC
 AUC_ordered = ordered(eval.summary.df$AUC)
@@ -237,7 +237,7 @@ TSS_upper = eval.summary.df$TSS + eval.summary.df$TSS_sd
 
 r = ggplot(eval.summary.df, aes(x=AUC, y=TSS, color = scenario)) + geom_point() 
 r
-cor(eval.summary.df$TSS, eval.summary.df$AUC) # extremely high correlation: 0.98
+cor(eval.summary.df$TSS, eval.summary.df$AUC) # high correlation: 0.87
 
 ####################################################################################################
 # Defining 'top' algorithims for future focus ----
@@ -260,7 +260,12 @@ rownames(methods.summary) <- 1:nrow(methods.summary)
 methods.summary
 methods.summary$method = factor(methods.summary$method, 
                                 levels=methods.summary$method[order(-methods.summary$TSS.mean)])
-write.xlsx(methods.summary,"./data/methods.summary.xlsx") # export to excel sprdsheet
+# write.xlsx(methods.summary,"./data/methods.summary.xlsx") # export to excel sprdsheet
+
+# top algorithms are fda, svm and rf 
+#  - Flexible Discriminant Analysis (‘fda’) – a statistical regression algorithm
+#  - Support vector machines ('svm') – a machine-learning algorithm
+#  - Random Forests ('rf') – a machine-learning algorithm
 saveRDS(methods.summary, "./rds/methods.summary.rds")
 
 # plot TSS by method, with error bars:
@@ -268,18 +273,20 @@ palette(c("red","magenta","blue","cyan","green3","brown","gray","purple","yellow
 # adding&changing colour palette (default has 8 only)
 algorithm = 1:9
 
+ymin = min(methods.summary$TSS.mean - methods.summary$TSS.sd)
+ymax = max(methods.summary$TSS.mean + methods.summary$TSS.sd)
+
 lower.end = methods.summary$TSS.mean - methods.summary$TSS.sd
 upper.end = methods.summary$TSS.mean + methods.summary$TSS.sd
 
-par(mfrow = c(1,1))
 png(filename = paste0(B.heavies.image.path,"Algorithm performance by TSS.withbars.by site.png"), 
     width=14, height=8, units='cm', res=300)
-par(mgp=c(2,0.5,0),mar=c(3,3,0,0)+0.1)
+par(mfrow = c(1,1), mgp=c(2,0.5,0), mar=c(3,3,0,0)+0.1)
 plot(methods.summary$TSS[,1], bg=methods.summary$method, pch=21, cex=1.5, 
-     ylim = range(c(lower.end, upper.end)),xlim=c(1,9.5), 
+     ylim = range(c(ymin, ymax)), xlim=c(1,7.5), 
      xlab="Algorithm",xaxt='n',ylab="Average TSS")
 with(methods.summary, text(methods.summary$TSS.mean~rownames(methods.summary),
-                           labels=methods.summary$method, pos=4, cex=0.9, offset=0.35))
+                           labels = methods.summary$method, pos=4, cex=0.9, offset=0.35))
 #legend("topright", c('rf','svm','gam','brt','mda','cart','rpart','glm','fda'), 
 #  pt.bg=c(1:9),pch=21,cex=1.5,text.font=1)
 arrows(algorithm, lower.end, algorithm,   upper.end,  length=0.05, angle=90, code=3)
@@ -288,14 +295,15 @@ dev.off()
 
 # plot without error bars:
 
-lower.end = min(methods.summary$TSS.mean)
-upper.end = max(methods.summary$TSS.mean)
+ymin = min(methods.summary$TSS.mean)
+ymax = max(methods.summary$TSS.mean)
 
 png(filename = paste0(B.heavies.image.path,"Algorithm performance by TSS.nobars. by site.png"), 
     width=14, height=8, units='cm', res=300)
 par(mgp=c(2,0.5,0),mar=c(3,3,0,0))
-plot(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5, xlab="Algorithm",xaxt='n',ylab="Average TSS",
-     ylim=c(0.44,0.78), xlim=c(1,9.5))
+plot(methods.summary$TSS.mean, bg=methods.summary$method, pch=21, cex=1.5, xlab="Algorithm",
+     xaxt='n',ylab="Average TSS",
+     ylim=c(ymin, 1.02), xlim=c(1,7.5))
 with(methods.summary, text(methods.summary$TSS.mean ~ rownames(methods.summary), 
                            labels = methods.summary$method, pos = 4, cex=1))
 # legend("topright",c("rf","svm","gam","brt","mda","cart","rpart","glm","fda"),pt.bg=c(1:9), pch=21,cex=1.5,text.font=1)
@@ -326,7 +334,7 @@ dev.off()
 # Performance of the top 3 methods is as consistent as any other methods. The SD of TSS for the top RF models in particularly low.
 
 # Outputs from top model selection ----
-write.xlsx(methods.summary, "./data/model evaluation summary (aggregated by method).xlsx")
+# write.xlsx(methods.summary, "./data/model evaluation summary (aggregated by method).xlsx")
 # top models are RF, BRT, SVM, and GAM (CART is up there too, but so similar to BRT, not considered to add much)
 
 ####################################################################################################

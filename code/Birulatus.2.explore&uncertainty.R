@@ -96,7 +96,7 @@ plot(preds.i, main = raster.list.i.names)
 # Test for multicollinearity ----
 # Get variance inflation Factor and test for multicollinearity:
 
-# soil-delimited set:
+# soil-delimited set ----
 lstats = layerStats(preds.s, 'pearson', na.rm=T)
 corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
 # png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_soilset.png"),
@@ -113,7 +113,7 @@ vif(preds.s.nocoll)
 vifcor(preds.s.nocoll, th=0.9) # no collinearity problem remaining
 saveRDS(preds.s.nocoll, paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # raster stack
 
-# lithology-delimited study area:
+# lithology-delimited study area ----
 lstats = layerStats(preds.l, 'pearson', na.rm=T)
 corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
 # png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_lithset.png"),
@@ -130,7 +130,7 @@ vif(preds.l.nocoll)
 vifcor(preds.l.nocoll, th=0.9) # no collinearity problem remaining
 saveRDS(preds.l.nocoll, paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # raster stack
 
-# israel-wide study area:
+# israel-wide study area ----
 lstats = layerStats(preds.i, 'pearson', na.rm=T)
 corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
 # png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_lithset.png"),
@@ -142,7 +142,7 @@ vif(preds.i)
 # Zuur: Some suggest that VIF values >5 or 10 are too high. In ecology vif >3 considered too much
 vifcor(preds.i) # excludes elevation from israel set
 names(preds.i) # ie exclude #4 (elevation) 
-preds.i.nocoll = stack(preds.i[[1]],preds.i[[2]],preds.i[[3]],preds.i[[5]],preds.i[[6]],preds.i[[7]])
+preds.i.nocoll = stack(preds.i[[1]],preds.i[[2]],preds.i[[3]],preds.i[[5]],preds.i[[6]])
 vif(preds.i.nocoll)
 vifcor(preds.i.nocoll, th=0.9) # no collinearity problem remaining
 saveRDS(preds.i.nocoll, paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # raster stack
