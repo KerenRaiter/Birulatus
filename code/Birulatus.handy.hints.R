@@ -144,6 +144,18 @@ colors()
 # Subsetting data ----
 
 # good source: https://stats.idre.ucla.edu/r/faq/frequently-asked-questions-about-rhow-can-i-subset-a-data-setthe-r-program-as-a-text-file-for-all-the-code-on-this-page-subsetting-is-a-very-important-component/
+
+set.seed(1234)
+x <- matrix(rnorm(30, 1), ncol = 5)
+y <- c(1, seq(5))
+
+#combining x and y into one matrix
+x <- cbind(x, y)
+
+#converting x into a data frame called x.df
+x.df <- data.frame(x)
+x.df
+
 # subsetting according to a variable condition
 x.sub <- subset(x.df, y > 2)
 x.sub

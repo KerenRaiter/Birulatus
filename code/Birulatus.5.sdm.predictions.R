@@ -64,8 +64,10 @@ predmaps.fda = readRDS(paste0(B.heavies.rds.path, "predmaps.fda.rds"))
 predmaps.svm = readRDS(paste0(B.heavies.rds.path, "predmaps.svm.rds"))
 predmaps.rf  = readRDS(paste0(B.heavies.rds.path, "predmaps.rf.rds"))
 
+set.ensembles = readRDS(paste0(B.heavies.rds.path, "set.ensembles.rds")) # no content :(
 
-set.ensembles = readRDS(paste0(B.heavies.rds.path, "set.ensembles.rds"))
+thresholds     = readRDS("./rds/ensemble.thresholds.rds")
+ensemble.dist  = readRDS(paste0(B.heavies.rds.path,"ensemble.dist.rds"))
 
 
 # from previous scripts:
@@ -85,7 +87,7 @@ set.names = list("Soils-delimited study area", "Lithology-delimited study area",
                  "Israel-wide study area")
 set.descriptions = list("Focused study area; soil-type included",
                         "Focused study area; lithology included",
-                        "Broad model, no soil/lithology data")
+                        "Broad model, no soil nor lithology data")
 data.packs          = readRDS("./rds/data.packs.bysite.rds")
 
 borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
@@ -270,8 +272,8 @@ preds = list(preds.s.nocoll, preds.l.nocoll, preds.i.nocoll)
 for(i in 1:length(set.names)) {
 
   file = paste0(B.heavies.spatial.path, 'Ensemble prediction - ', set.names[[i]], '.tif')
-  set.ensembles[[i]] = ensemble(models[[i]], preds[[i]], filename = file, overwrite = TRUE, 
-                                setting=list(method ='weighted', stat='TSS', opt=2)) 
+  set.ensembles[[i]] = ensemble(models[[i]], newdata =preds[[i]], filename = file, overwrite = TRUE, 
+                                setting = list(method ='weighted', stat='TSS', opt=2)) 
                                  # opt=2 selects for max(sensitivity + specificity)
   
   file = paste0(B.heavies.image.path, 'Ensemble prediction - ', set.names[[i]], '.png')
@@ -280,9 +282,153 @@ for(i in 1:length(set.names)) {
   dev.off()
   }
 
-saveRDS(set.ensembles, paste0(B.heavies.rds.path, "set.ensembles.rds"))
+saveRDS(set.ensembles, paste0(B.heavies.rds.path, "set.ensembles.rds")) # doesn't save the content
+# and no way of deconstructing seems to allow me to save the heavy contents either!
+save(set.ensembles, file = paste0(B.heavies.rds.path, "set.ensembles.RData"))
 
-beep()  
+beep()
+
+set.ensembles
+
+# Alternative method (not needed here):
+{
+# # The above ensembling method uses rasters as the new data, so the output is also rasters. 
+# # Below is a way to create an ensemble based on the evaluation data. This allows you to make an ensemble using a selection of models, selected by their performance. You just find out which models have e.g. TSS > 0.7 and get their modelID (you can use getEvaluation function to get the statistics for all modelIDs and extract the id of those that meet your condition). Then, in the setting of the ensemble function, you can add the argument id to which you give the modelD of the models you want to participate in the ensemble procedure.
+# 
+# me.1 = getEvaluation(models[[1]])
+# me.2 = getEvaluation(models[[2]])
+# me.3 = getEvaluation(models[[3]])
+# 
+# # use the following to specify just models with a certain performance level (here unneeded):
+# id <- me.1$modelID[me.1$TSS > 0.7]
+# 
+# en.1 = ensemble(models[[1]], preds[[1]], filename='file.tif', 
+#                 setting=list(method='weighted', stat='TSS', opt=2, id=id)) 
+}
+
+###################################################################################################
+# Variable importance ----
+
+# 'how to' notes:
+{#getVarImp(m,id=1,wtest='training') # variable importance based on training dataset
+  
+  #vi <- getVarImp(m,id=1,wtest='test.dep') 
+  
+  #plot(vi,'auc')
+  
+  #plot(vi,'cor')
+}
+
+# the automatic way ----
+varimp = list()
+
+for(v in 1:length(set.names)) {
+  
+  varimp[[v]] = getVarImp( model.list.complete[[v]] ) 
+  # (once I was able to include ",  varImportance='tss'" in the above, now doesn't work)
+
+  file = paste0(B.heavies.image.path, 'Variable importance - ', set.names[[v]], '.png')
+  png(plot, filename = file, width = 14, height = 14, units = "cm", res = 300)
+  plot( varimp[[v]], main = set.descriptions[[v]] , cex = 0.4) 
+  dev.off()  
+  
+  plot( varimp[[v]], main = set.descriptions[[v]] , cex = 0.4)   
+  
+  varimp[[v]]
+  #str(varimp[[v]])  
+  }
+
+# The manual way ----
+# The automatic way is nice! and has error bars! but I don't know how to extract the tss variable importance data, nor change the order, so going back to calculating the average manually:
+
+# first, calculate variable importance for individual algorithms and sets, and average within sets:
+varimportance.fda      = list()
+varimportance.svm      = list()
+varimportance.rf       = list()
+varimportance          = list()
+par(mar=c(3,4.5,3,1.5))
+
+for (i in 1:length(set.names))                                                               {
+  varimportance.fda[[i]]  = getVarImp(modelset[[i]], id=1, wtest='training', varImportance='tss')
+  varimportance.svm[[i]]  = getVarImp(modelset[[i]], id=2, wtest='training', varImportance='tss')
+  varimportance.rf[[i]]   = getVarImp(modelset[[i]], id=3, wtest='training', varImportance='tss')
+  
+  varimportance[[i]] = data.frame(variable = c(varimportance.fda[[i]]@variables[1], 
+                                               varimportance.fda[[i]]@variables[2], 
+                                               varimportance.fda[[i]]@variables[3],
+                                               varimportance.fda[[i]]@variables[4], 
+                                               varimportance.fda[[i]]@variables[5]),
+                       importance = c(mean(c(varimportance.fda[[i]]@varImportance$AUCtest[1], 
+                                             varimportance.svm[[i]]@varImportance$AUCtest[1],
+                                             varimportance.rf [[i]]@varImportance$AUCtest[1])),
+                                      mean(c(varimportance.fda[[i]]@varImportance$AUCtest[2], 
+                                             varimportance.svm[[i]]@varImportance$AUCtest[2],
+                                             varimportance.rf [[i]]@varImportance$AUCtest[2])),
+                                      mean(c(varimportance.fda[[i]]@varImportance$AUCtest[3], 
+                                             varimportance.svm[[i]]@varImportance$AUCtest[3],
+                                             varimportance.rf [[i]]@varImportance$AUCtest[3])),
+                                      mean(c(varimportance.fda[[i]]@varImportance$AUCtest[4], 
+                                             varimportance.svm[[i]]@varImportance$AUCtest[4],
+                                             varimportance.rf [[i]]@varImportance$AUCtest[4])),
+                                      mean(c(varimportance.fda[[i]]@varImportance$AUCtest[5], 
+                                             varimportance.svm[[i]]@varImportance$AUCtest[5],
+                                             varimportance.rf [[i]]@varImportance$AUCtest[5]))))
+  
+  order = (rev(c(5,4,1,2,3)))  # Get order of rows as determined by overall average importance (below) # removed rev()
+  varimportance[[i]] <- varimportance[[i]][order,]      # sort
+  
+  title    = paste0("Variable importance for ", set.descriptions[[i]]) # for when I have multiple scenarios
+  # title = "Variable importance averaged across the three top models"
+  # filename = paste0(B.heavies.image.path,'Variable importance - ', set.descriptions[[i]], '.png') # didn't work when file name was specified seperately.
+  png(filename = paste0(B.heavies.image.path,'Mean variable importance-',set.descriptions[[i]],'.png'), 
+      width = 18, height = 10, units = 'cm', res = 600)  
+  par(mar = c(3, 8.5, 3, 0.5)) # sets the bottom, left, top and right margins respectively.
+                               # the default: par(mar = c(5.1, 4.1, 4.1, 2.1)) # units = lines of text
+  barplot(varimportance[[i]]$importance, 
+          names.arg = varimportance[[i]]$variable, xlab = "Variable importance averaged across the four top models",
+          main=title, horiz=TRUE, cex.names=0.8, las=1, mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.2, 
+          col='lightgreen', xlim=c(0,0.4)) 
+  dev.off()                                                                                                     }
+
+saveRDS(varimportance.rf,  paste0(B.heavies.rds.path, "varimportance.rf.rds"))
+saveRDS(varimportance.svm, paste0(B.heavies.rds.path, "varimportance.svm.rds"))
+saveRDS(varimportance.gam, paste0(B.heavies.rds.path, "varimportance.gam.rds"))
+saveRDS(varimportance,     paste0(B.heavies.rds.path, "varimportance.rds"))
+
+# Then average variable importance over all models
+
+var.importance.allsets = data.frame(
+  Variable = c("Topo-wetness", "Jan temp", "Precipitation", "Slope", "Soil", 
+               "Lithology", "July temp"),
+  Importance = c(mean(varimportance[[1]][varimportance[[1]]$variable =="Topographic.Wetness", 2 ],
+                      varimportance[[2]][varimportance[[2]]$variable =="Topographic.Wetness", 2 ],
+                      varimportance[[3]][varimportance[[3]]$variable =="Topographic.Wetness", 2 ]),
+                 mean(varimportance[[1]][varimportance[[1]]$variable =="Jan.mean.temperature", 2 ],
+                      varimportance[[2]][varimportance[[2]]$variable =="Jan.mean.temperature", 2 ],
+                      varimportance[[3]][varimportance[[3]]$variable =="Jan.mean.temperature", 2 ]),
+                 mean(varimportance[[1]][varimportance[[1]]$variable =="Precipitation", 2 ],
+                      varimportance[[2]][varimportance[[2]]$variable =="Precipitation", 2 ],
+                      varimportance[[3]][varimportance[[3]]$variable =="Precipitation", 2 ]),
+                 mean(varimportance[[1]][varimportance[[1]]$variable =="slope", 2 ],
+                      varimportance[[2]][varimportance[[2]]$variable =="slope", 2 ],
+                      varimportance[[3]][varimportance[[3]]$variable =="slope", 2 ]),
+                 varimportance[[1]][varimportance[[1]]$variable =="Soil", 2 ],
+                 varimportance[[2]][varimportance[[2]]$variable =="lith", 2 ],
+                 varimportance[[3]][varimportance[[3]]$variable =="July.mean.temperature", 2 ] ))
+
+order = order(var.importance.allsets$Importance)
+var.importance.allsets.ordered = var.importance.allsets[order,] 
+
+png(paste0(B.heavies.image.path,"Variable importance averages for all sets.png"), 
+    width = 18, height = 10, units = 'cm', res = 600)   # par() #default is 5.1 4.1 4.1 2.1
+par(mar=c(3,4.4,3,1.5))
+barplot(var.importance.allsets.ordered$Importance, 
+        names.arg = var.importance.allsets.ordered$Variable, xlab = "Variable importance averaged across all sets",
+        main="Averaged variable importance", horiz=TRUE, cex.names=0.8, las=1, 
+        mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.4, col='lightblue')
+dev.off()
+
+saveRDS(var.importance.allsets.ordered, "./rds/var.importance.allsets.ordered.rds")
 
 ###################################################################################################
 # Map ensemble distributions (within-scenario ensembles) ----
@@ -329,7 +475,8 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
   png(filename = plot.filename, width = 16, height = 25, units = 'cm', res = 900)
   plot(ensemble.dist[[i]], xlim=c(xmins[[i]], xmaxs[[i]]), ylim=c(ymins[[i]], ymaxs[[i]]), 
        # or xlim = c(34.5,36)???
-       main = "Predicted Birulatus distribution, using an ensemble of 4 modelling approaches", cex.main=0.7) 
+       main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
+       cex.main=0.7) 
   lines(israel.WB, col="darkgrey", lty=5, lwd=2)
   lines(study.areas[[i]])
   points(b[b$occurrence == 1,],col='blue',pch=16, cex=0.7)
@@ -337,8 +484,10 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
   lines(groads, col="lightgrey")
   points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
   points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-  with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
-  with(select.towns, text(select.towns$lat~select.towns$lon, labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
+  with(major.cities, text(major.cities$lat~major.cities$lon, 
+                          labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  with(select.towns, text(select.towns$lat~select.towns$lon, 
+                          labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
   legend("bottomright",c("Presence", "Absence"), col=c("blue","red"),pch=16,cex=.7)
   
   # alternatively: plot(s.predmaps.rf[[i]], col = c('white','green'), breaks=c(0, s.threshold.rf,1))
@@ -359,12 +508,14 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
   # distribution.poly = rasterToPolygons(ensemble.dist.unitone, digits=12, na.rm=TRUE,dissolve=T); plot(distribution.poly)
   
   # make unitone distribution image:
-  plot.filename  = paste0(B.heavies.image.path,'Ensemble distribution - ', set.names[[i]], '_unitone.png')
+  plot.filename  = paste0(B.heavies.image.path,'Ensemble distribution - ', 
+                          set.names[[i]], '_unitone.png')
   par(mar = c(2,2,2,0), mgp=c(2,0.5,0)) # , bty="n"
   png(filename = plot.filename, width = 16, height = 25, units = 'cm', res = 300)
   plot(ensemble.dist[[i]], col = c('white','blue'), breaks=c(0, thresholds[[i]], 1), 
        legend=FALSE, xlim=c(xmins[[i]], xmaxs[[i]]), ylim=c(ymins[[i]], ymaxs[[i]]),
-       main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", cex.main=0.7) 
+       main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
+       cex.main=0.7) 
   lines(israel.WB, col="darkgrey", lty=5, lwd=2)
   lines(study.areas[[i]])
   points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.7)
@@ -373,8 +524,10 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
   points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
   select.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
   points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-  with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
-  with(select.towns, text(select.towns$lat~select.towns$lon, labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
+  with(major.cities, text(major.cities$lat~major.cities$lon, 
+                          labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  with(select.towns, text(select.towns$lat~select.towns$lon, 
+                          labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
   legend("bottomright",c("Presence","Absence","Predicted distribution"), 
          col=c("blue","red","green"), pt.bg="darkgreen", pch=c(16,16,22), cex=.7)
   
@@ -426,69 +579,96 @@ mtext("Predicted Birulatus distribution, using an ensemble of 3 modelling approa
 } 
 dev.off()
 
-###################################################################################################
-# Legacy ----
-
-  # distribution map image and raster sub-loop
-  {
-  pngname.rf   = paste0(heavies.image.path,'Predicted distribution ', set.names[[i]], ' - RF.png')
-  png(filename = pngname.rf, width = 14, height = 25, units = 'cm', res = 600) 
-  par(mar = c(2,2,0,0), mgp=c(2,0.5,0)) # , bty="n"
-  plot(s.occmaps.rf[[i]], xlim=c(34.27173, 35.3248), ylim=c(31.12667, 33.10742),legend=F) 
-  plot(schreiberi.buffer, lwd=0.5, add=T)
-  # can also plot like this plot(s.predmaps.rf[[i]], col = c('white','green'),breaks=c(0,s.threshold.rf,1))
-  points(ssp.full,  col='purple',       pch=16, cex=0.4) 
-  points(ssa.full,  col='pink',         pch=16, cex=0.4) 
-  points(sc.nodups, col='deepskyblue2', pch=16, cex=0.4)
-  points(sc.r,      col='darkblue',     pch=16, cex=0.4) 
-  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
-                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
-                    pch=16, col=c("purple","pink","darkblue","deepskyblue2"), cex=1)
-  dev.off()
-  
-  tifname.rf  = paste0(heavies.spatial.path,'Predicted distribution ', set.names[[i]], ' - RF.tif')
-  writeRaster(s.occmaps.rf[[i]], filename = tifname.rf, options=c('TFW=YES'), overwrite= TRUE)
-  
-  pngname.svm   = paste0(heavies.image.path,'Predicted distribution ', set.names[[i]], ' - SVM.png')
-  png(filename  = pngname.svm, width = 14, height = 25, units = 'cm', res = 600)
-  par(mar = c(2,2,0,0), mgp=c(2,0.5,0)) # , bty="n"
-  plot(s.occmaps.svm[[i]],legend=F) 
-  plot(schreiberi.buffer, lwd=0.5, add=T)
-  points(ssp.full,  col='purple',       pch=16, cex=0.4) 
-  points(ssa.full,  col='pink',         pch=16, cex=0.4) 
-  points(sc.nodups, col='deepskyblue2', pch=16, cex=0.4)
-  points(sc.r,      col='darkblue',     pch=16, cex=0.4) 
-  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
-                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
-                    pch=16, col=c("purple","pink","darkblue","deepskyblue2"), cex=1)
-  dev.off()
-  
-  tifname.svm  = paste0(heavies.spatial.path,'Predicted distribution ', set.names[[i]], ' - SVM.tif')
-  writeRaster(s.occmaps.svm[[i]], filename = tifname.svm, options=c('TFW=YES'), overwrite=TRUE)
-  
-  pngname.gam   = paste0(heavies.image.path,'Predicted distribution ', set.names[[i]], ' - GAM.png')
-  png(filename  = pngname.gam, width = 14, height = 25, units = 'cm', res = 600)
-  par(mar = c(2,2,0,0), mgp=c(2,0.5,0)) # , bty="n"
-  plot(s.occmaps.gam[[i]],legend=F)
-  plot(schreiberi.buffer, lwd=0.5, add=T)
-  points(ssp.full,  col='purple',       pch=16, cex=0.4) 
-  points(ssa.full,  col='pink',         pch=16, cex=0.4) 
-  points(sc.nodups, col='deepskyblue2', pch=16, cex=0.4)
-  points(sc.r,      col='darkblue',     pch=16, cex=0.4) 
-  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
-                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
-                    pch=16, col=c("purple","pink","darkblue","deepskyblue2"), cex=1)
-  dev.off()
-  
-  tifname.gam  = paste0(heavies.spatial.path,'Predicted distribution ', set.names[[i]], ' - GAM.tif')
-  writeRaster(s.occmaps.gam[[i]], filename = tifname.gam, options=c('TFW=YES'), overwrite=TRUE)       
-  
-print(paste(set.names[[i]],"loop took", difftime(Sys.time(),start.time, units="mins"), "minutes"))}
-
+# save all objects up to here:
+save.image(file = paste0(B.heavies.rds.path, "workspace script 5 8.7.2021.RData"))
+load(paste0(B.heavies.rds.path, "workspace script 5 8.7.2021.RData"))
 
 
 ###################################################################################################
-# other how to ----
+# Plot response curves ----
+
+modelset        = model.list.complete
+rcurves         = list()                  # list to store response curves
+
+i=3 # for some reason this for-loop doesn't produce viable images! but running each iteration manually does.
+# 11/05/2020: even the code didn't work, I had to manually save from the plot window.
+# for (i in 1:length(set.names))       {
+
+filename = paste0(B.heavies.image.path,'Mean response curves - ', set.descriptions[[i]], '.png')
+title = paste0("Response curves for ", set.descriptions[[i]])
+rcurves[[i]] = rcurve(modelset[[i]], id=1:3, mean=TRUE, confidence=TRUE, 
+                      smooth=T, main=title, size=1000)
+
+# png(filename = filename, width = 18, height = 8, units = 'cm', res = 600)
+# preset file name above not working so do it manually:
+png(filename = paste0(B.heavies.image.path, 
+                      'Response curves - Broad model, no soil nor lithology data.png'), 
+    width = 18, height = 8, units = 'cm', res = 600)
+par(mar=c(0,0,1,0))
+curve = rcurve(modelset[[i]], id=1:3, mean=T, confidence=TRUE, smooth=T, 
+               main=set.descriptions[[i]], size=1000, main.cex=0.5, gg=T)
+curve + theme(axis.text.x = element_blank(), axis.text.y = element_blank(),  
+              axis.title.x=element_blank(), legend.position="none", 
+              panel.background=element_blank(), 
+              panel.grid.major=element_blank(), 
+              plot.background=element_blank())
+dev.off()                                  
+# }
+
+str(rcurves[[i]]$data$variable)
+
+# Response curves again, with x-axes 
+i=1 # loop doesn't work so do each of these then code chunk below...
+i=2 # loop doesn't work so do each of these then code chunk below...
+i=3 # loop doesn't work so do each of these then code chunk below...
+
+{
+var_names = c("Jan.mean.temperature"="Jan temp", "Precipitation"="Precipitation", "slope"="Slope",
+              "Soil"="Soil", "Topographic.Wetness"="Topo-W", "lith"="Lithology", 
+              "July.mean.temperature"="July temp")
+filename = paste0(B.heavies.image.path,
+                  'Mean response curves - ', set.descriptions[[i]], ' with axes.png')
+title    = paste0("Response curves for ", set.descriptions[[i]])
+
+png(filename = filename, width = 18, height = 8, units = 'cm', res = 300)
+par(mar=c(1,1,1,0))
+curve = rcurve(modelset[[i]], id=1:3, mean=T, confidence=TRUE, smooth=T, 
+               main = set.descriptions[[i]], size=1000, main.cex=0.5, gg=T) 
+
+curve + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5, size=10),
+              axis.title.x = element_text(size=12, color='black'), 
+              legend.position="none", 
+              panel.background=element_blank(), 
+              panel.grid.major=element_blank(), 
+              plot.background=element_blank()) + 
+  facet_grid(.~variable, scales='free_x', labeller = as_labeller(var_names))
+dev.off() }                                 
+
+
+
+filename = paste0(B.heavies.image.path,
+                  'Mean response curves - ', set.descriptions[[i]], ' with axes.png')
+title    = paste0("Response curves for ", set.descriptions[[i]])
+
+png(filename = filename, width = 18, height = 8, units = 'cm', res = 300)
+par(mar=c(1,1,1,0))
+curve = rcurve(modelset[[i]], id=1:3, mean=T, confidence=TRUE, smooth=T, 
+               main = set.descriptions[[i]], size=1000, main.cex=0.5, gg=T) 
+
+curve + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5, size=10),
+              axis.title.x = element_text(size=12, color='black'), 
+              legend.position="none", 
+              panel.background=element_blank(), 
+              panel.grid.major=element_blank(), 
+              plot.background=element_blank()) + 
+  facet_grid(.~variable, scales='free_x', labeller = as_labeller(var_names))
+dev.off() 
+
+
+saveRDS(rcurves, paste0(B.heavies.rds.path,"rcurves.rds"))
+
+###################################################################################################
+# Extra stuff that might come in handy one day -----
 
 # How to make an ensemble of just the models with high TSS, weighted by TSS:
 id = eval.list[[i]]$modelID[models$TSS > 0.5]
@@ -505,4 +685,61 @@ class(model.list.complete[[i]])
 m <- sdm(...., modelSettings=list(brt=list(n.trees=3000)))
 # For each method, you need to check the relevant package (e.g., dismo for maxent) to see what parameters are used. In the case of maxent, yes, currently the default settings are used.
 
-########################################################################################################
+
+# Studies have shown that predictions or projections by alternative models can be so variable that challenge the common practice of relying on one single method. A solution is to utilize several models (‘ensembles’) and use appropriate techniques to explore the resulting range of projections. Signiﬁcant improvements on the robustness of a forecast can be achieved if an ensemble approach is used and the results analysed appropriately.
+# In the sdm package, the ensemble function can be used to generate an ensemble prediction or forecast based on the multiple models that are used in the sdm function. Several methods are implemented and can be used by a user in a ﬂexible way. Here is an example: 
+
+# in the following, we predict the habitat suitability using the ensemble function # since the newdata is a raster object, the output is also a raster object
+# ensemble based on a Weighted averaging that is weighted using AUC statistic 
+e1 <- ensemble(m1,newdata=preds,filename='e1.img',setting=list(method='weighted',stat='AUC'))
+plot(e1)
+
+# ensemble based on a Weighted averaging that is weighted using TSS statistic with threshold criterion number 
+e2 <- ensemble(m2,newdata=preds,filename='e2.img',setting=list(method='weighted',stat='TSS',opt=2))
+e2
+plot(e2)
+
+# ensemble based on an Unweighted averaging 
+e3 <- ensemble(m2,newdata=preds,filename='e3.img',setting=list(method='unweighted'))
+plot(e3)
+
+# to create an ensemble based on evaluation figure:
+# You can find out which models have the TSS > 0.7 and get their modelID (you can use getEvaluation function to get the statistics for all modelIDs and extract the id of those that meet your condition). Then, in the setting of the ensemble function, you can add the argument id to which you give the modelD of the models you want to participate in the ensemble procedure.
+
+me <- getEvaluation(m)
+
+id <- me$modelID[me$TSS > 0.7]
+
+en <- ensemble(m, preds, filename='file.tif', setting=list(method='weighted', stat='TSS', opt=2, id=id))
+
+# Alternative way of calculating variable importance across all sets 
+{
+var.importance.allsets = list()
+
+for (v in 1:6)          {     # manually replaced the 'length(varimportance[[1]]$variable)' with 6 as it still gave 7.
+  
+  var = varimportance[[1]]$variable[[v]] # name of variable
+  
+  var.importance.allcombos[[v]] = data.frame(Variable = var,
+                                             set1 = varimportance[[1]]$importance[v], 
+                                             # '1' is the scenario, 'v' refers to variable in question
+                                             set2 = varimportance[[2]]$importance[v],                                                                                       set3 = varimportance[[3]]$importance[v]  )    }
+
+var.importance.allcombos.df = do.call("rbind", var.importance.allcombos)
+var.importance.allcombos.df$mean = rowMeans(var.importance.allcombos.df[,c("scenario1","scenario2")] )
+
+order <- order(var.importance.allcombos.df$mean)              # Get order of rows, for plotting in order
+var.importance.allcombos.df <- var.importance.allcombos.df[order,]      # sort
+
+# png(paste0(B.heavies.image.path,"Variable importance - averaged across xxx.png"), 
+#     width = 18, height = 10, units = 'cm', res = 600)
+# par() #default is 5.1 4.1 4.1 2.1
+par(mar=c(3,4.5,3,1.5))
+barplot(var.importance.allcombos.df$mean, 
+        names.arg = var.importance.allcombos.df$Variable, xlab = "Variable importance averaged across all models",
+        main="Averaged variable importance", horiz=TRUE, cex.names=0.8, las=1, 
+        mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.6, col='lightblue')
+# dev.off()
+}
+
+###################################################################################################
