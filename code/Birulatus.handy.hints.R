@@ -839,7 +839,6 @@ m2 <- m[[1:4]]
 ensemble(m2, ...)
 
 #####
-# 
 # Calculating distance to nearest point ----
 
 # from https://stackoverflow.com/questions/21977720/r-finding-closest-neighboring-point-and-number-of-neighbors-within-a-given-rad
@@ -984,7 +983,6 @@ levels(r) <- rat
 rasterVis::levelplot(r)
 
 #####
-#
 # Create SpatialPpointsDataFrame from coordinates ----
 
 # To make a SpatialPointsDataFrame you need 3 components:
@@ -1017,13 +1015,11 @@ spplot(spdf, "copper")
   my_data <- read_excel(file.choose())
 
 #####
-# 
 # Control number of decimal digits in print output ----
 
 options(digits=3)
 
 #####
-# 
 # Collapse all code sections (code folding) ----
 
 # Edit > folding > collapse all
@@ -1031,8 +1027,6 @@ options(digits=3)
 # Alt + O
 
 #####
-# 
-
 # GitHub personal access token ----
 
 # from https://gist.github.com/Z3tt/3dab3535007acf108391649766409421
@@ -1063,3 +1057,45 @@ usethis::git_sitrep()
 
 ?git_vaccinate
 usethis::git_vaccinate()
+
+#####
+# Weighted mean ----
+
+weighted.mean(x, weights)
+weighted.mean(c(2,3,4,1),c(0.2,0.1,9,0.05))
+#####
+# Parse - construct names by loop, and evaluate that object, and deparse ----
+
+# non-sensical example:
+
+list.abc = list(78, 923, 12)
+list.pqr = list(0.4, 0.71, 0.055)
+list.xyz = list(751, 952, 9072)
+
+letters = list("abc", "pqr", "xyz")
+results = list()
+
+for (i in 1:length(letters)) { 
+  for (a in 1:length(list.abc)) {
+results = eval(parse(text = paste0("list.", letters[[a]])))[[i]]
+  }
+}
+
+# Example in use:
+for (i in 1:length(set.names))                           {
+  for (a in 1:length(top.algs.l))      {
+    occmap = eval(parse(text = paste0("occmaps.",top.algs[[a]])))[[i]]
+    plot(occmap, axes=FALSE, ann=FALSE )
+  }  }
+
+#####
+# How to add title for graph with multiple plots ----
+
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+plot(1:10,  main="Plot 1")
+plot(1:100,  main="Plot 2")
+mtext("Title for Two Plots", outer = TRUE, cex = 1.5)
+
+# an example of deparse in use:
+png(filename = paste0(B.heavies.image.path,"schreiberi/","S ", deparse(substitute(distribution)), ".png"))
+ 

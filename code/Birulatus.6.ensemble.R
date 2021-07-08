@@ -178,7 +178,7 @@ for (i in 1:length(data_packages))                                              
 ensembles      = list()
 modelset       = model.list.complete
 
-for (i in 1:length(scenario.names))                                                                         { #~3 hours?
+for (i in 1:length(scenario.names)) {                                                   #~3 hours?
   start.time = Sys.time();  print(scenario.names[i])
   
   weights        = list()
@@ -596,12 +596,6 @@ dev.off()
 
 saveRDS(var.importance.allcombos,    "./rds_objects/var.importance.rds")
 saveRDS(var.importance.allcombos.df, "./rds_objects/var.importance.df.rds")
-
-###################################################################################################
-# The grand ensemble, etc. ----
-
-# To reduce code duplication, this section has been deleted; 
-# please refer to the corresponding section in sdm.8a.finalmodel.beershebensis
 
 ###################################################################################################
 # Extra stuff that might come in handy one day -----

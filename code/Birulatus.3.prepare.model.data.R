@@ -76,7 +76,7 @@ ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000
 
 # from this script:
 
-data.packages          = readRDS("rds/data.packages.rds")
+data.packs          = readRDS("rds/data.packs.rds")
 
 # from previous scripts:
 
@@ -130,6 +130,6 @@ plot(data.pack.l@features)
 
 # main output objects from this section:
 
-saveRDS(data.packs,         "./rds/data.packages.bysite.rds")
+saveRDS(data.packs,         "./rds/data.packs.bysite.rds")
 
 ####################################################################################################

@@ -98,7 +98,7 @@ preds.s.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # stac
 preds.l.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # stack, collinear excl.
 preds.i.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # stack, collinear excl. 
 
-data.packages = readRDS("rds/data.packages.bysite.rds")
+data.packs = readRDS("rds/data.packs.bysite.rds")
 
 major.cities = readRDS("./rds/major.cities.rds")
 small.cities = readRDS("./rds/small.cities.rds")
@@ -151,10 +151,10 @@ sdm.cv = function(data) {
 # create models for each scenario 
 model.list.cv.100n = list()
 
-for (i in 1:length(data.packages))                                                                        {
+for (i in 1:length(data.packs))                                                                        {
   start.time = Sys.time()
   print(set.names[i])
-  data = data.packages[[i]]
+  data = data.packs[[i]]
   model.list.cv.100n[[i]] = sdm.cv(data)  
   print(paste(set.names[[i]],"loop took", difftime(Sys.time(), start.time, units="mins"),"minutes"))   }
 
