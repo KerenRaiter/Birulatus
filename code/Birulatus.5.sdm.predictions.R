@@ -90,16 +90,20 @@ set.descriptions = list("Focused study area; soil-type included",
                         "Broad model, no soil nor lithology data")
 data.packs          = readRDS("./rds/data.packs.bysite.rds")
 
-borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
-israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
+borders          = readRDS("rds/borders.rds")
+israel.WB        = readRDS("rds/israel.WB.rds")
+israel.WB.merged = readRDS("./rds/israel.WB.merged.rds")
+israel.WB        = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
+waterbodies      = readRDS("rds/waterbodies.rds")
 
 bir.area.s = readRDS("./rds/bir.area.s.rds")
 bir.area.l = readRDS("./rds/bir.area.l.rds")
 bir.area.i = readRDS("./rds/bir.area.i.rds")
 
 major.cities = readRDS("./rds/major.cities.rds")
-major.cities = major.cities[major.cities$name != "Tyre (Sur)", ]   # remove Tyre
+four.cities  = subset(major.cities, subset = name == "Tel Aviv" | name == "Be'er Sheva" | 
+                                             name == "Haifa"    | name == "Jerusalem")
 small.cities = readRDS("./rds/small.cities.rds")
 large.towns  = readRDS("./rds/large.towns.rds")
 towns        = readRDS("./rds/towns.rds")
@@ -269,7 +273,10 @@ set.ensembles = list()
 models        = model.list.complete
 preds = list(preds.s.nocoll, preds.l.nocoll, preds.i.nocoll)
 
-for(i in 1:length(set.names)) {
+# for(i in 1:length(set.names)) {
+i=1 # loop doesn't work...
+i=2
+i=3
 
   file = paste0(B.heavies.spatial.path, 'Ensemble prediction - ', set.names[[i]], '.tif')
   set.ensembles[[i]] = ensemble(models[[i]], newdata =preds[[i]], filename = file, overwrite = TRUE, 
@@ -279,8 +286,16 @@ for(i in 1:length(set.names)) {
   file = paste0(B.heavies.image.path, 'Ensemble prediction - ', set.names[[i]], '.png')
   png(plot, filename = file, width = 18, height = 30, units = "cm", res = 100)
   plot(set.ensembles[[i]])
+  plot(waterbodies, col = "lightblue", border = NA, add = T)
+  plot(israel.WB.merged, border = "grey", add = T)
+  lines(groads, col="lightgrey")
+  points(four.cities, pch=21, col='black', bg='black', cex=1.3)
+  points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.5)
+  points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.5)
+  lines(study.areas[[i]], col="black")
+  legend("bottomright",c("Presence", "Absence"), col=c("blue","red"), pch=16, cex=0.5)
   dev.off()
-  }
+#   }
 
 saveRDS(set.ensembles, paste0(B.heavies.rds.path, "set.ensembles.rds")) # doesn't save the content
 # and no way of deconstructing seems to allow me to save the heavy contents either!
@@ -471,25 +486,25 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
   
   # make multitone distribution image (showing different levels of probability of occurrence):
   plot.filename  = paste0(B.heavies.image.path,'Ensemble distribution - ', set.names[[i]], '.png')
-  par(mar = c(2,2,2,0), mgp=c(2,0.5,0)) # , bty="n"
+  par(mfrow = c(1,1), mar = c(2,2,2,0), mgp=c(2,0.5,0)) # , bty="n"
   png(filename = plot.filename, width = 16, height = 25, units = 'cm', res = 900)
   plot(ensemble.dist[[i]], xlim=c(xmins[[i]], xmaxs[[i]]), ylim=c(ymins[[i]], ymaxs[[i]]), 
        # or xlim = c(34.5,36)???
        main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
        cex.main=0.7) 
-  lines(israel.WB, col="darkgrey", lty=5, lwd=2)
-  lines(study.areas[[i]])
-  points(b[b$occurrence == 1,],col='blue',pch=16, cex=0.7)
-  points(b[b$occurrence == 0,],col='red',pch=16, cex=0.7)
+  plot(waterbodies, col="lightblue", border=NA, add = T)
+  # plot(israel.WB, col=NA, lty=5, lwd=2, add=T)
   lines(groads, col="lightgrey")
-  points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
-  points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-  with(major.cities, text(major.cities$lat~major.cities$lon, 
-                          labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
-  with(select.towns, text(select.towns$lat~select.towns$lon, 
-                          labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
-  legend("bottomright",c("Presence", "Absence"), col=c("blue","red"),pch=16,cex=.7)
-  
+  lines(study.areas[[i]])
+  points(four.cities, pch=21, col='black', bg='black', cex=1.3)
+  points(b[b$occurrence == 1,],col='blue', pch=16, cex=0.5)
+  points(b[b$occurrence == 0,],col='red',  pch=16, cex=0.5)
+  # points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
+  # with(four.cities, text(four.cities$lat~four.cities$lon, 
+  #                         labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  # with(select.towns, text(select.towns$lat~select.towns$lon, 
+  #                         labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
+  legend("bottomright",c("Presence", "Absence"), col=c("blue","red"), pch=16, cex=0.5)
   # alternatively: plot(s.predmaps.rf[[i]], col = c('white','green'), breaks=c(0, s.threshold.rf,1))
   dev.off()
   
@@ -516,20 +531,21 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
        legend=FALSE, xlim=c(xmins[[i]], xmaxs[[i]]), ylim=c(ymins[[i]], ymaxs[[i]]),
        main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
        cex.main=0.7) 
-  lines(israel.WB, col="darkgrey", lty=5, lwd=2)
+  plot(waterbodies, col="lightblue", border=NA, add = T)
+  #lines(israel.WB, col="darkgrey", lty=5, lwd=1)
   lines(study.areas[[i]])
-  points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.7)
-  points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.7)
+  points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.5)
+  points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.5)
   lines(groads, col="lightgrey")
-  points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
-  select.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
-  points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-  with(major.cities, text(major.cities$lat~major.cities$lon, 
-                          labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
-  with(select.towns, text(select.towns$lat~select.towns$lon, 
-                          labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
+  points(four.cities, pch=21, col='black', bg='black', cex=1.3)
+  # select.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
+  # points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
+  # with(four.cities, text(four.cities$lat~four.cities$lon, 
+  #                         labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  # with(select.towns, text(select.towns$lat~select.towns$lon, 
+  #                         labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
   legend("bottomright",c("Presence","Absence","Predicted distribution"), 
-         col=c("blue","red","green"), pt.bg="darkgreen", pch=c(16,16,22), cex=.7)
+         col=c("blue","red","blue"), pt.bg="darkgreen", pch=c(16,16,22), cex=.5)
   
   # alternatively: plot(s.predmaps.rf[[i]], col = c('white','green'), breaks=c(0, s.threshold.rf,1))
   dev.off()
@@ -563,10 +579,10 @@ lines(groads, col="lightgrey")
 lines(israel.WB, col="darkgrey", lty=5, lwd=2)
 points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.7)
 points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.7)
-points(major.cities, pch=21, col='black', bg='yellow', cex=1.3)
+points(four.cities, pch=21, col='black', bg='yellow', cex=1.3)
 points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
 lines(study.areas[[i]], col="orange")
-with(major.cities, text(major.cities$lat~major.cities$lon, labels=major.cities$name, pos=4, cex=0.6, offset=0.3)) 
+with(four.cities, text(four.cities$lat~four.cities$lon, labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
 with(select.towns, text(select.towns$lat~select.towns$lon, labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
 text(x = 35.2, y = 33.4, labels = toupper(set.descriptions[[i]]), cex = 0.9, xpd = NA) 
 legend("bottomright", c("Presence","Absence","Predicted distribution", "Study area"), 

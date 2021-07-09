@@ -9,7 +9,8 @@ if (length(new.pkg))install.packages(new.pkg, dependencies = TRUE)
 sapply(pkg, require, character.only = TRUE)}
 ipak(c("rgdal","stringr","usdm", "biomod2","raster","scales", "grid", "foreign","dplyr","magrittr",
        "tidyr","rgeos","ggplot2","gridExtra","raster","rasterVis","dismo","sdm","installr","knitr", 
-       "ggmap","OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","readxl")) 
+       "ggmap","OpenStreetMap","parallel","beepr","rmapshaper", "spatialEco", "rJava","readxl",
+       "maptools")) 
 # removed sf, may be causing problems
 # installed.packages()
 installAll() # installing everything the sdm relies on.
@@ -60,9 +61,13 @@ ITM = CRS("+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444445 +k=1.0000
 ####################################################################################################
 # Datasets I prepared earlier in this script ----
 
-borders          = readRDS("rds/borders.rds");            israel.WB = readRDS("rds/israel.WB.rds")
-israel.WB.merged = readRDS("./rds/israel.WB.merged.rds"); israel.WB = readRDS("./rds/israel.WB.no.water.rds")
+borders          = readRDS("rds/borders.rds")
+israel.WB        = readRDS("rds/israel.WB.rds")
+israel.WB.merged = readRDS("./rds/israel.WB.merged.rds")
+israel.WB        = readRDS("./rds/israel.WB.no.water.rds")
 israel.noWB      = readRDS("rds/israel.noWB.rds")
+waterbodies      = readRDS("rds/waterbodies.rds")
+
 plot(borders); lines(israel.WB.merged, col = "green", lwd = 4); lines(israel.noWB, col="blue")
 
 bir.area.l    = readRDS("rds/bir.area.l.rds")   # study area
@@ -127,6 +132,19 @@ plot(borders)
 israel.WB = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_&_WB_landandwatermerged_WGS")
 plot(israel.WB)
 
+require(sf)
+israel.details = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel borders with details")
+israel.details.WGS = spTransform(israel.details, CRS("+proj=longlat +datum=WGS84"))
+plot(israel.details.WGS, col = "yellow")
+plot(israel.WB, col = "blue", add = T) # they they plot on the same coordinate system!
+
+waterbodies = israel.details.WGS[israel.details.WGS$ENG_NAME == "MEDITERRANEAN SEA" |
+                                   israel.details.WGS$ENG_NAME == "SEA OF GALILEE"|
+                                   israel.details.WGS$ENG_NAME == "DEAD SEA",]
+plot(israel.WB, col = "pink")
+plot(waterbodies, col = "lightblue", border = NA, add = T)
+
+
 israel.WB.merged = readOGR(dsn = "E:/GIS working/layers/borders", layer="Israel_&_WB_merged_landandwatermerged_WGS")
 plot(israel.WB.merged)
 
@@ -138,7 +156,8 @@ plot(israel.WB.no.water.merge)
 
 israel.noWB = borders[borders$Label == "Israel",]; plot(israel.noWB)
 
-# saveRDS(borders, "rds/borders.rds")         
+# saveRDS(borders, "rds/borders.rds")     
+# saveRDS(waterbodies, "rds/waterbodies.rds")     
 # saveRDS(israel.WB, "rds/israel.WB.rds")
 # saveRDS(israel.WB.merged, "./rds/israel.WB.merged.rds")
 # saveRDS(israel.WB, "./rds/israel.WB.no.water.rds")
@@ -669,6 +688,42 @@ plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); li
 plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop
 plot(preds[[7]], col=rainbow(50),          main=name[[7]], legend=F, axes=F); lines(buff) # Soil/lith
 dev.off()
+
+# Extra - making raster stack for soils area that includes lithology, to test if collinear ----
+
+# make list of all the layers to consider, last one is lithology from other list
+preds.c.list = list(raster.list.s[[1]], raster.list.s[[2]], raster.list.s[[3]], raster.list.s[[4]], 
+                    raster.list.s[[5]], raster.list.s[[6]], raster.list.s[[7]], raster.list.l[[7]])
+plot(preds.c.list)
+
+par(mfrow = c(4,2), mar=c(2,2,2,4))
+for (i in 1:length(preds.c.list))                                  {
+  preds.c.list[[i]] = crop(preds.c.list[[i]], extent(bir.area.s))
+  preds.c.list[[i]] = mask(preds.c.list[[i]], bir.area.s)
+  plot(preds.c.list[[i]], main = names(preds.c.list[[i]]))        } # great!
+
+preds.c = stack(preds.c.list); plot(preds.c)
+
+# Test for multicollinearity ----
+
+# combo set ----
+lstats = layerStats(preds.c, 'pearson', na.rm=T)
+corr_matrix = lstats$'pearson correlation coefficient'; corr_matrix
+# png(filename=paste0(B.heavies.image.path,"Correlation matrix for Birulatus_soilset.png"),
+#     width=20, height=20, units='cm', res=600)
+pairs(preds.c, hist=TRUE, cor=TRUE, use="pairwise.complete.obs", maxpixels=100000)
+# dev.off()
+
+vif(preds.c)
+# Zuur: Some suggest that VIF values >5 or 10 are too high. In ecology vif >3 considered too much
+vifcor(preds.c) # excludes elevation & july temp from soil set. Sometimes jan & jul temp instead.
+names(preds.c) # ie get rid of #3 (jult) & #4 (elevation) 
+preds.c.nocoll = stack(preds.s[[1]],preds.s[[2]],preds.s[[5]],preds.s[[6]],preds.s[[7]])
+vif(preds.s.nocoll)
+vifcor(preds.s.nocoll, th=0.9) # no collinearity problem remaining
+saveRDS(preds.s.nocoll, paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # raster stack
+
+
 
 ###########################################################################################
 # Importing observation datasets ----
