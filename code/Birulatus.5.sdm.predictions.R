@@ -87,7 +87,7 @@ set.names = list("Soils-delimited study area", "Lithology-delimited study area",
                  "Israel-wide study area")
 set.descriptions = list("Focused study area; soil-type included",
                         "Focused study area; lithology included",
-                        "Broad model, no soil nor lithology data")
+                        "Broad model, continuous data only")
 data.packs          = readRDS("./rds/data.packs.bysite.rds")
 
 borders          = readRDS("rds/borders.rds")
@@ -153,7 +153,7 @@ for (i in 1:length(data.packs))  {
 # model.list.complete[[i]][[5]]
 
 ###################################################################################################
-# Predict species occurrence probability over whole study area ----
+# Predict species occurrence probability over whole study area (individual algorithms) ----
 
 for (a in 1:length(top.algs)) { assign ( paste0("predmaps.",top.algs[[a]]), list() ) } # make lists
 
@@ -282,19 +282,22 @@ i=3
   set.ensembles[[i]] = ensemble(models[[i]], newdata =preds[[i]], filename = file, overwrite = TRUE, 
                                 setting = list(method ='weighted', stat='TSS', opt=2)) 
                                  # opt=2 selects for max(sensitivity + specificity)
-  
+  {
   file = paste0(B.heavies.image.path, 'Ensemble prediction - ', set.names[[i]], '.png')
-  png(plot, filename = file, width = 18, height = 30, units = "cm", res = 100)
+  png(plot, filename = file, width = 18, height = 30, units = "cm", res = 300)
   plot(set.ensembles[[i]])
   plot(waterbodies, col = "lightblue", border = NA, add = T)
-  plot(israel.WB.merged, border = "grey", add = T)
   lines(groads, col="lightgrey")
-  points(four.cities, pch=21, col='black', bg='black', cex=1.3)
+  plot(israel.WB.merged, border = "grey", add = T)
+  lines(study.areas[[i]], col="orange")
   points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.5)
   points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.5)
-  lines(study.areas[[i]], col="black")
-  legend("bottomright",c("Presence", "Absence"), col=c("blue","red"), pch=16, cex=0.5)
-  dev.off()
+  points(four.cities, pch=21, col='black', bg='black', cex=1)
+  with  (four.cities, text(four.cities$lat ~ four.cities$lon, 
+                           labels = four.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  legend("bottomright", c("Observed presence", "Observed absence", "Study area"), cex = 0.5,  
+         pch = c(16,16,22), col=c("blue","red","orange"), pt.bg= c(NA, NA, NA))
+  dev.off()}
 #   }
 
 saveRDS(set.ensembles, paste0(B.heavies.rds.path, "set.ensembles.rds")) # doesn't save the content
@@ -392,17 +395,20 @@ for (i in 1:length(set.names))                                                  
   order = (rev(c(5,4,1,2,3)))  # Get order of rows as determined by overall average importance (below) # removed rev()
   varimportance[[i]] <- varimportance[[i]][order,]      # sort
   
-  title    = paste0("Variable importance for ", set.descriptions[[i]]) # for when I have multiple scenarios
+  title    = paste0("Variable importance for ", set.descriptions[[i]]) 
   # title = "Variable importance averaged across the three top models"
-  # filename = paste0(B.heavies.image.path,'Variable importance - ', set.descriptions[[i]], '.png') # didn't work when file name was specified seperately.
-  png(filename = paste0(B.heavies.image.path,'Mean variable importance-',set.descriptions[[i]],'.png'), 
+  # filename = paste0(B.heavies.image.path,'Variable importance - ', 
+  #                   set.descriptions[[i]],'.png') # didn't work when file name specified separately
+  png(filename = paste0(B.heavies.image.path,
+                        'Mean variable importance-', set.descriptions[[i]],'.png'), 
       width = 18, height = 10, units = 'cm', res = 600)  
   par(mar = c(3, 8.5, 3, 0.5)) # sets the bottom, left, top and right margins respectively.
                                # the default: par(mar = c(5.1, 4.1, 4.1, 2.1)) # units = lines of text
   barplot(varimportance[[i]]$importance, 
-          names.arg = varimportance[[i]]$variable, xlab = "Variable importance averaged across the four top models",
-          main=title, horiz=TRUE, cex.names=0.8, las=1, mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.2, 
-          col='lightgreen', xlim=c(0,0.4)) 
+          names.arg = varimportance[[i]]$variable, 
+          xlab = "Variable importance averaged across the four top models",
+          main=title, cex.main=1.2, horiz=TRUE, cex.names=0.8, las=1, 
+          mgp=c(3, 0.2, 0), tck=-0.008,  col='lightgreen', xlim=c(0,0.4)) 
   dev.off()                                                                                                     }
 
 saveRDS(varimportance.rf,  paste0(B.heavies.rds.path, "varimportance.rf.rds"))
@@ -438,7 +444,8 @@ png(paste0(B.heavies.image.path,"Variable importance averages for all sets.png")
     width = 18, height = 10, units = 'cm', res = 600)   # par() #default is 5.1 4.1 4.1 2.1
 par(mar=c(3,4.4,3,1.5))
 barplot(var.importance.allsets.ordered$Importance, 
-        names.arg = var.importance.allsets.ordered$Variable, xlab = "Variable importance averaged across all sets",
+        names.arg = var.importance.allsets.ordered$Variable, 
+        xlab = "Variable importance averaged across all sets",
         main="Averaged variable importance", horiz=TRUE, cex.names=0.8, las=1, 
         mgp=c(3, 0.2, 0), tck=-0.008, cex.main=1.4, col='lightblue')
 dev.off()
@@ -493,18 +500,17 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
        main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
        cex.main=0.7) 
   plot(waterbodies, col="lightblue", border=NA, add = T)
-  # plot(israel.WB, col=NA, lty=5, lwd=2, add=T)
   lines(groads, col="lightgrey")
-  lines(study.areas[[i]])
-  points(four.cities, pch=21, col='black', bg='black', cex=1.3)
+  plot(israel.WB.merged, col=NA, lty=5, lwd=1, add=T)
+  lines(study.areas[[i]], col="orange")
   points(b[b$occurrence == 1,],col='blue', pch=16, cex=0.5)
   points(b[b$occurrence == 0,],col='red',  pch=16, cex=0.5)
-  # points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-  # with(four.cities, text(four.cities$lat~four.cities$lon, 
-  #                         labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
-  # with(select.towns, text(select.towns$lat~select.towns$lon, 
-  #                         labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
-  legend("bottomright",c("Presence", "Absence"), col=c("blue","red"), pch=16, cex=0.5)
+  points(four.cities, pch=21, col='black', bg='black', cex=1)
+  with  (four.cities, text(four.cities$lat~four.cities$lon, 
+                           labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  legend("bottomright", c("Observed presence", "Observed absence", "Study area"), cex = 0.5, 
+         pch=c(16,16,22), col=c("blue","red","orange"), pt.bg= c(NA, NA, NA))
+  
   # alternatively: plot(s.predmaps.rf[[i]], col = c('white','green'), breaks=c(0, s.threshold.rf,1))
   dev.off()
   
@@ -532,20 +538,19 @@ for (i in 1:length(set.names)) {   # takes ~ 1 minute
        main = "Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
        cex.main=0.7) 
   plot(waterbodies, col="lightblue", border=NA, add = T)
-  #lines(israel.WB, col="darkgrey", lty=5, lwd=1)
-  lines(study.areas[[i]])
+  lines(groads, col="lightgrey")
+  lines(israel.WB, col="darkgrey", lty=5, lwd=1)
+  lines(study.areas[[i]], col = "orange")
   points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.5)
   points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.5)
-  lines(groads, col="lightgrey")
-  points(four.cities, pch=21, col='black', bg='black', cex=1.3)
-  # select.towns = large.towns[large.towns$name == "Tiberias" | large.towns$name == "Afula",]
-  # points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-  # with(four.cities, text(four.cities$lat~four.cities$lon, 
-  #                         labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  points(four.cities, pch=21, col='black', bg='black', cex=1)
+  with  (four.cities, text(four.cities$lat~four.cities$lon,
+                           labels=four.cities$name, pos=4, cex=0.6, offset=0.3))
+  # points(select.towns, pch=21, col='black', bg='yellow', cex=0.8)
   # with(select.towns, text(select.towns$lat~select.towns$lon, 
   #                         labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
-  legend("bottomright",c("Presence","Absence","Predicted distribution"), 
-         col=c("blue","red","blue"), pt.bg="darkgreen", pch=c(16,16,22), cex=.5)
+  legend("bottomright", c("Observed presence","Observed absence","Predicted distribution","Study area"), cex=.5,
+         col = c("blue","red","blue","orange"), pt.bg = c(NA,NA,"blue",NA), pch=c(16,16,22,22))
   
   # alternatively: plot(s.predmaps.rf[[i]], col = c('white','green'), breaks=c(0, s.threshold.rf,1))
   dev.off()
@@ -568,27 +573,27 @@ bir.area.i # 34.26693, 35.89533, 29.49042, 33.33407  (xmin, xmax, ymin, ymax)
 png(filename = paste0(B.heavies.image.path,"Predicted distributions by study area.png"), 
                     width = 20, height = 16, units = "cm", res = 400)
 {
-par(mfrow=c(1,3), mar = c(0,0,2,4), mgp=c(0,0,0), oma = c(0, 0, 1.8, 0), bty = "n")
+par(mfrow=c(1,3), mar = c(0,0,2,4), mgp=c(0,0,0), oma = c(0, 0, 1.8, 0)) #, bty = "n"
 
 for (i in 1:length(set.names)) { 
-  plot(bir.area.i, axes=FALSE, ann=FALSE)
+  plot(bir.area.i, axes=FALSE, ann=FALSE, border="darkgrey", )
   plot(ensemble.dist[[i]], add=TRUE,
        col = c('white','chartreuse4'), breaks=c(0, thresholds[[i]], 1), 
      legend=FALSE, xlim=c(34.26693, 35.89533), ylim=c(29.49042, 33.33407)) 
-lines(groads, col="lightgrey")
-lines(israel.WB, col="darkgrey", lty=5, lwd=2)
-points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.7)
-points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.7)
-points(four.cities, pch=21, col='black', bg='yellow', cex=1.3)
-points(select.towns,        pch=21, col='black', bg='yellow', cex=0.8)
-lines(study.areas[[i]], col="orange")
-with(four.cities, text(four.cities$lat~four.cities$lon, labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
-with(select.towns, text(select.towns$lat~select.towns$lon, labels=select.towns$name, pos=4, cex=0.6, offset=0.3))
-text(x = 35.2, y = 33.4, labels = toupper(set.descriptions[[i]]), cex = 0.9, xpd = NA) 
-legend("bottomright", c("Presence","Absence","Predicted distribution", "Study area"), 
-       pch=c(16,16,22,22),  cex=.7, 
-       col=c("blue","red","chartreuse4","orange"), 
-       pt.bg= c(NA, NA, "chartreuse4", NA))
+  plot(waterbodies, col = "lightblue", border = NA, add = T)
+  lines(groads, col="lightgrey")
+  lines(israel.WB, col="darkgrey", lty=5, lwd=1)
+  lines(study.areas[[i]], col="orange")
+  points(b[b$occurrence == 1,], col='blue', pch=16, cex=0.5)
+  points(b[b$occurrence == 0,], col='red',  pch=16, cex=0.5)
+  points(four.cities, pch=21, col='black', bg='yellow', cex=1)
+  with  (four.cities, text(four.cities$lat~four.cities$lon, 
+                           labels=four.cities$name, pos=4, cex=0.6, offset=0.3)) 
+  text(x = 35.2, y = 33.55, labels = toupper(set.descriptions[[i]]), cex = 0.9, xpd = NA) 
+  legend("bottomright", c("Observed presence","Observed absence","Predicted distribution", "Study area"), cex = 0.5, 
+         pch = c(16,16,22,22), col = c("blue","red","chartreuse4","orange"),
+         pt.bg = c(NA,NA,"chartreuse4",NA))
+  box(lty = 1, col = 'black')
 }
 mtext("Predicted Birulatus distribution, using an ensemble of 3 modelling approaches", 
       outer = TRUE, cex = 1.2)
