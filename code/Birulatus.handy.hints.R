@@ -1052,7 +1052,7 @@ usethis::create_github_token()
 
 
 ## set personal access token:
-credentials::set_github_pat("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")
+credentials::set_github_pat("ghp_xxxxxxxxxxxxxxxxxxxxxx")
 
 ## or store it manually in '.Renviron':
 usethis::edit_r_environ()`
