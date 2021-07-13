@@ -60,6 +60,10 @@ B.heavies.image.path   = 'E:/R/Birulatus_heavies/images/'
 # Datasets prepared earlier ----
 # from this script:
 
+# save all objects up to here:
+# save.image(file = paste0(B.heavies.rds.path, "workspace script 5, 9.7.2021.RData"))
+load(paste0(B.heavies.rds.path, "workspace script 5, 9.7.2021.RData"))
+
 predmaps.fda = readRDS(paste0(B.heavies.rds.path, "predmaps.fda.rds"))
 predmaps.svm = readRDS(paste0(B.heavies.rds.path, "predmaps.svm.rds"))
 predmaps.rf  = readRDS(paste0(B.heavies.rds.path, "predmaps.rf.rds"))
@@ -599,11 +603,6 @@ mtext("Predicted Birulatus distribution, using an ensemble of 3 modelling approa
       outer = TRUE, cex = 1.2)
 } 
 dev.off()
-
-# save all objects up to here:
-save.image(file = paste0(B.heavies.rds.path, "workspace script 5 8.7.2021.RData"))
-load(paste0(B.heavies.rds.path, "workspace script 5 8.7.2021.RData"))
-
 
 ###################################################################################################
 # Plot response curves ----
