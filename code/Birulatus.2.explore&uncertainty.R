@@ -148,3 +148,46 @@ vifcor(preds.i.nocoll, th=0.9) # no collinearity problem remaining
 saveRDS(preds.i.nocoll, paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # raster stack
 
 # there's another function called corvif(), takes in only numerical variables. for reference.
+
+##################################################################################################
+# Plot the non-collinear rasters ----
+
+preds.s.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.s.nocoll.rds")) # stack, collinear excl.
+preds.l.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.l.nocoll.rds")) # stack, collinear excl.
+preds.i.nocoll = readRDS(paste0(B.heavies.rds.path,"preds.i.nocoll.rds")) # stack, collinear excl. 
+
+# Plot rasters in one row: (*could shorten this code with plot-running code discovered recently)
+# for israel-wide, width=12, mfrow=c(1,6) & comment out seventh plot) 
+png(filename = paste0(B.heavies.image.path,
+                      "Environmental variables for the focused and broad study areas.png"), 
+    width=12, height=13, units='cm',res=600) 
+par(mfrow=c(2,5), mar=c(1,0,2,0), oma = c(0, 0, 1.5, 0), bty="n") # sets bottom, left, top & right margins respectively
+
+area.s = bir.area.s
+area.i = bir.area.i
+nam.s = list("Rain", "Jan temp", "Topo-wetness", "Slope", "Soil")
+nam.i = list("Rain", "Jan temp", "Jul temp", "Topo-wet", "Slope")
+pr.s = preds.s.nocoll
+pr.i = preds.i.nocoll
+
+plot(pr.s[[1]], col=cm.colors(30),        main=nam.s[[1]], legend=F, axes=F, cex.main=0.8); lines(area.s) # Rain
+plot(pr.s[[2]], col=rev(heat.colors(12)), main=nam.s[[2]], legend=F, axes=F, cex.main=0.8); lines(area.s) # Jant
+plot(pr.s[[3]], col=topo.colors(8),       main=nam.s[[3]], legend=F, axes=F, cex.main=0.8); lines(area.s) # TWet
+plot(pr.s[[4]], col=(terrain.colors(5)),  main=nam.s[[4]], legend=F, axes=F, cex.main=0.8); lines(area.s) # Slop
+plot(pr.s[[5]], col=rainbow(30),          main=nam.s[[5]], legend=F, axes=F, cex.main=0.8); lines(area.s) # Soil
+
+plot(pr.i[[1]], col=cm.colors(20),        main=nam.i[[1]], legend=F, axes=F, cex.main=0.8); lines(area.i) # Rain
+plot(pr.i[[2]], col=(heat.colors(12)),    main=nam.i[[2]], legend=F, axes=F, cex.main=0.8); lines(area.i) # Jant
+plot(pr.i[[4]], col=topo.colors(8),       main=nam.i[[4]], legend=F, axes=F, cex.main=0.8); lines(area.i) # TWet
+plot(pr.i[[5]], col=(terrain.colors(5)),  main=nam.i[[5]], legend=F,axes=F, cex.main=0.8); lines(area.i) # Slop
+plot(pr.i[[3]], col=rev(heat.colors(50)), main=nam.i[[3]], legend=F, axes=F, cex.main=0.8); lines(area.i) # Jult
+
+mtext("Variables used in focused study area", outer = TRUE, cex = 0.8)
+mtext("Variables used in broad study area",   outer = TRUE, cex = 0.8, line = -19.2)
+
+dev.off()
+
+# to plot a raster but break up continuous cell values in to categorical:
+# brk = c(0,0.25,0.5,0.75,1.0)
+# plot(x, col=terrain.colors(3), breaks=brk)
+

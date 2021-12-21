@@ -687,7 +687,7 @@ union(e1, e2)
   
 
 #####
-# Cool plot with two lines plotted seperately on different axes ----
+# Cool plot with two lines plotted separately on different axes ----
 x <- 1:100
 y1 <- rnorm(100)
 y2 <- rnorm(100)+100
@@ -1111,3 +1111,38 @@ mtext("Title for Two Plots", outer = TRUE, cex = 1.5)
 # an example of deparse in use:
 png(filename = paste0(B.heavies.image.path,"schreiberi/","S ", deparse(substitute(distribution)), ".png"))
  
+# Cool plot-writing function for automatic inclusions in plots ----
+
+plot.withreference.data = function(distribution) {
+  par(mar=c(1,1,1,1), bty="n")
+  plot(distribution, col="green", xlim=c(34.27173,35.3248), ylim=c(31.12667,33.10742), bty="n", axes=F,legend=F)
+  lines(borders, lwd=1, col="seashell4")
+  plot(schreiberi.buffer, lwd=0.5, add=T)
+  plot(major.cities, pch=21, bg='yellow', cex=1.3, add=TRUE)
+  with(major.cities, text(major.cities$lat~major.cities$lon, labels = major.cities$name, pos=2, 
+                          cex=0.8, offset=0.3))
+  points(ssp,  col='purple',       pch=16, cex=0.3) 
+  points(ssa,  col='pink',         pch=16, cex=0.3) 
+  points(sc,   col='deepskyblue2', pch=16, cex=0.3)
+  points(sc.r, col='darkblue',     pch=16, cex=0.3) 
+  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
+                                                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
+         pch=16, col=c("purple","pink","darkblue","deepskyblue2"),pt.cex = 0.4, cex=1)
+  png(filename = paste0(heavies.image.path,"schreiberi/","S ", deparse(substitute(distribution)), 
+                        ".png"), width=16, height=22, units='cm',res=900)
+  par(mar=c(1,1,1,1), bty="n")
+  plot(distribution, col="green", xlim=c(34.27173,35.3248), ylim=c(31.12667,33.10742), bty="n", axes=F,legend=F)
+  lines(borders, lwd=1, col="seashell4")
+  plot(schreiberi.buffer, lwd=0.5, add=T)
+  plot(major.cities, pch=21, bg='yellow', cex=1.3, add=TRUE)
+  with(major.cities, text(major.cities$lat~major.cities$lon, labels = major.cities$name, 
+                          pos=2, cex=0.8, offset=0.3))
+  points(ssp,  col='purple',       pch=16, cex=0.3) 
+  points(ssa,  col='pink',         pch=16, cex=0.3) 
+  points(sc,   col='deepskyblue2', pch=16, cex=0.3)
+  points(sc.r, col='darkblue',     pch=16, cex=0.3) 
+  legend("topleft", title = "Observational data", c("Survey presence (723)", "Survey absence (99)",
+                                                    "Reliable collections data (63)", "Unreliable collections data (30)"), 
+         pch=16, col=c("purple","pink","darkblue","deepskyblue2"),pt.cex = 0.4, cex=1)
+  dev.off()
+}

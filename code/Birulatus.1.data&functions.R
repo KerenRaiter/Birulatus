@@ -682,7 +682,7 @@ par(mfrow=c(1,7), mar=c(0,0,2,0), bty="n") # sets the bottom, left, top and righ
 buff = bir.area.i; name = raster.list.i.names; preds = preds.i
 plot(preds[[1]], col=cm.colors(30),        main=name[[1]], legend=F, axes=F); lines(buff) # Rain
 plot(preds[[2]], col=rev(heat.colors(12)), main=name[[2]], legend=F, axes=F); lines(buff) # Jant
-plot(preds[[3]], col=rev(heat.colors(8)), main=name[[3]], legend=F, axes=F); lines(buff) # Jult
+plot(preds[[3]], col=rev(heat.colors(8)),  main=name[[3]], legend=F, axes=F); lines(buff) # Jult
 plot(preds[[4]], col=topo.colors(30),      main=name[[4]], legend=F, axes=F); lines(buff) # DEM
 plot(preds[[5]], col=topo.colors(30),      main=name[[5]], legend=F, axes=F); lines(buff) # TWet
 plot(preds[[6]], col=topo.colors(50),      main=name[[6]], legend=F, axes=F); lines(buff) # Slop
